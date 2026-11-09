@@ -61,10 +61,10 @@
 
         .escena {
             position: relative;
-            background: var(--panel);
             border: 1px solid var(--linea);
             height: 55vh;
             min-height: 320px;
+            transition: background-color .2s;
         }
 
         model-viewer {
@@ -157,14 +157,88 @@
             line-height: 1.5;
         }
 
-        #diag {
-            margin-top: 12px;
-            padding: 12px;
+        /* --- Interruptor de fondo --------------------------- */
+        .escenarios {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            margin-top: 8px;
             border: 1px solid var(--linea);
-            font-family: monospace;
-            font-size: 12px;
+        }
+
+        .escenarios button {
+            font: inherit;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px 8px;
+            border: 0;
+            border-radius: 0;
+            cursor: pointer;
+            background: var(--panel);
             color: var(--suave);
-            white-space: pre-wrap;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            transition: color .15s, background .15s;
+        }
+
+        .escenarios button+button {
+            border-left: 1px solid var(--linea);
+        }
+
+        .escenarios button.activo {
+            background: var(--acento);
+            color: #fff;
+        }
+
+        .escenarios button:focus-visible {
+            outline: 2px solid var(--texto);
+            outline-offset: -4px;
+        }
+
+        /* Fondo del contenedor según data-fondo */
+        .escena[data-fondo="si"] {
+            background-color: var(--panel);
+        }
+
+        .escena[data-fondo="no"] {
+            background-color: transparent;
+        }
+
+        /* --- Controles de cámara --------------------------- */
+        .camara {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            margin-top: 8px;
+            border: 1px solid var(--linea);
+        }
+
+        .camara button {
+            font: inherit;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px 4px;
+            border: 0;
+            border-radius: 0;
+            cursor: pointer;
+            background: var(--panel);
+            color: var(--suave);
+            letter-spacing: .03em;
+            text-align: center;
+            transition: color .15s, background .15s;
+        }
+
+        .camara button+button {
+            border-left: 1px solid var(--linea);
+        }
+
+        .camara button:hover,
+        .camara button:active {
+            background: #1e1e1e;
+            color: var(--texto);
+        }
+
+        .camara button:focus-visible {
+            outline: 2px solid var(--texto);
+            outline-offset: -4px;
         }
 
         footer {
@@ -198,10 +272,10 @@
     </header>
 
     <main>
-        <div class="escena">
+        <div class="escena" id="escena" data-fondo="si">
             <model-viewer id="mv" src="auto.glb" alt="Modelo 3D de un auto de Fórmula 1" camera-controls auto-rotate
                 touch-action="pan-y" shadow-intensity="1" shadow-softness="1" exposure="1" environment-image="neutral"
-                camera-orbit="35deg 75deg auto" ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed"
+                camera-orbit="35deg 75deg auto" ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto"
                 loading="eager">
             </model-viewer>
 
@@ -224,7 +298,20 @@
         </div>
 
         <p id="aviso" class="aviso oculto" role="status"></p>
-        <div id="diag">diagnóstico: esperando eventos…</div>
+
+        <!-- Interruptor de fondo (solo visible en modo 3D) -->
+        <div class="escenarios" id="escenarios" role="group" aria-label="Fondo de la escena">
+            <button type="button" id="fondoSi" class="activo" aria-pressed="true">Con fondo</button>
+            <button type="button" id="fondoNo" aria-pressed="false">Sin fondo</button>
+        </div>
+
+        <!-- Controles de cámara -->
+        <div class="camara" role="group" aria-label="Controles de cámara">
+            <button type="button" id="camIzq" aria-label="Girar izquierda">&#8592; Izquierda</button>
+            <button type="button" id="camDer" aria-label="Girar derecha">Derecha &#8594;</button>
+            <button type="button" id="camAcercar" aria-label="Acercar">&#43; Acercar</button>
+            <button type="button" id="camAlejar" aria-label="Alejar">&#8722; Alejar</button>
+        </div>
     </main>
 
     <footer>
@@ -242,11 +329,13 @@
             var btn3d = document.getElementById('btn3d');
             var btnAR = document.getElementById('btnAR');
             var aviso = document.getElementById('aviso');
-            var diag = document.getElementById('diag');
             var reintentar = document.getElementById('reintentar');
+            var escena = document.getElementById('escena');
+            var escenarios = document.getElementById('escenarios');
+            var fondoSi = document.getElementById('fondoSi');
+            var fondoNo = document.getElementById('fondoNo');
 
-            function log(t) { diag.textContent = 'diagnóstico: ' + t; }
-
+            /* ---- Carga ------------------------------------ */
             mv.addEventListener('progress', function (e) {
                 var p = Math.round(e.detail.totalProgress * 100);
                 barra.style.width = p + '%';
@@ -256,28 +345,30 @@
             mv.addEventListener('load', function () {
                 cargando.classList.add('oculto');
                 fallo.classList.add('oculto');
-                log('LOAD OK · modelo cargado');
             });
 
-            mv.addEventListener('error', function (e) {
+            mv.addEventListener('error', function () {
                 cargando.classList.add('oculto');
                 fallo.classList.remove('oculto');
-                var d = e.detail || {};
-                log('ERROR · type=' + (d.type || '?') + ' · ' + (d.sourceError ? String(d.sourceError) : 'sin detalle'));
             });
 
             reintentar.addEventListener('click', function () { location.reload(); });
 
+            /* ---- Modos 3D / AR ---------------------------- */
             btn3d.addEventListener('click', function () {
                 btn3d.classList.add('activo'); btnAR.classList.remove('activo');
-                btn3d.setAttribute('aria-pressed', 'true'); btnAR.setAttribute('aria-pressed', 'false');
+                btn3d.setAttribute('aria-pressed', 'true');
+                btnAR.setAttribute('aria-pressed', 'false');
                 aviso.classList.add('oculto');
+                escenarios.classList.remove('oculto');
                 mv.autoRotate = true;
             });
 
             btnAR.addEventListener('click', function () {
                 btnAR.classList.add('activo'); btn3d.classList.remove('activo');
-                btnAR.setAttribute('aria-pressed', 'true'); btn3d.setAttribute('aria-pressed', 'false');
+                btnAR.setAttribute('aria-pressed', 'true');
+                btn3d.setAttribute('aria-pressed', 'false');
+                escenarios.classList.add('oculto');
                 if (mv.canActivateAR) {
                     aviso.classList.add('oculto');
                     mv.activateAR();
@@ -290,9 +381,69 @@
             mv.addEventListener('ar-status', function (e) {
                 if (e.detail.status === 'not-presenting' || e.detail.status === 'failed') {
                     btn3d.classList.add('activo'); btnAR.classList.remove('activo');
+                    btn3d.setAttribute('aria-pressed', 'true');
+                    btnAR.setAttribute('aria-pressed', 'false');
+                    escenarios.classList.remove('oculto');
                     mv.autoRotate = true;
                 }
             });
+
+            /* ---- Interruptor de fondo --------------------- */
+            function setFondo(valor) {
+                var conFondo = (valor === 'si');
+                escena.setAttribute('data-fondo', valor);
+                fondoSi.classList.toggle('activo', conFondo);
+                fondoNo.classList.toggle('activo', !conFondo);
+                fondoSi.setAttribute('aria-pressed', String(conFondo));
+                fondoNo.setAttribute('aria-pressed', String(!conFondo));
+            }
+
+            fondoSi.addEventListener('click', function () { setFondo('si'); });
+            fondoNo.addEventListener('click', function () { setFondo('no'); });
+
+            /* ---- Controles de cámara ----------------------
+               getCameraOrbit() devuelve { theta, phi, radius } en radianes/metros.
+               Escribimos de vuelta en grados para que model-viewer interpole suave.
+               fieldOfView acepta "Xdeg" y controla el zoom óptico.
+            ------------------------------------------------- */
+            var PASO_GIRO = 15;
+            var PASO_FOV = 5;
+            var FOV_MIN = 10;
+            var FOV_MAX = 90;
+
+            function orbitActual() {
+                var raw = mv.getCameraOrbit();
+                return {
+                    theta: raw.theta * (180 / Math.PI),
+                    phi: raw.phi * (180 / Math.PI),
+                    radius: raw.radius
+                };
+            }
+
+            function aplicarOrbit(theta, phi, radius) {
+                mv.cameraOrbit = theta + 'deg ' + phi + 'deg ' + radius + 'm';
+            }
+
+            document.getElementById('camIzq').addEventListener('click', function () {
+                var o = orbitActual();
+                aplicarOrbit(o.theta - PASO_GIRO, o.phi, o.radius);
+            });
+
+            document.getElementById('camDer').addEventListener('click', function () {
+                var o = orbitActual();
+                aplicarOrbit(o.theta + PASO_GIRO, o.phi, o.radius);
+            });
+
+            document.getElementById('camAcercar').addEventListener('click', function () {
+                var fov = parseFloat(mv.fieldOfView) - PASO_FOV;
+                mv.fieldOfView = Math.max(FOV_MIN, fov) + 'deg';
+            });
+
+            document.getElementById('camAlejar').addEventListener('click', function () {
+                var fov = parseFloat(mv.fieldOfView) + PASO_FOV;
+                mv.fieldOfView = Math.min(FOV_MAX, fov) + 'deg';
+            });
+
         })();
     </script>
 </body>
