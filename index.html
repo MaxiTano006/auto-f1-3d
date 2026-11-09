@@ -61,10 +61,11 @@
 
         .escena {
             position: relative;
+            background-color: var(--panel);
             border: 1px solid var(--linea);
             height: 55vh;
             min-height: 320px;
-            transition: background-color .2s;
+            transition: background-color .2s, border-color .2s;
         }
 
         model-viewer {
@@ -180,7 +181,7 @@
             transition: color .15s, background .15s;
         }
 
-        .escenarios button+button {
+        .escenarios button + button {
             border-left: 1px solid var(--linea);
         }
 
@@ -197,10 +198,19 @@
         /* Fondo del contenedor según data-fondo */
         .escena[data-fondo="si"] {
             background-color: var(--panel);
+            border-color: var(--linea);
         }
 
         .escena[data-fondo="no"] {
             background-color: transparent;
+            border-color: transparent;
+        }
+
+        .nota {
+            margin-top: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--suave);
         }
 
         /* --- Controles de cámara --------------------------- */
@@ -226,7 +236,7 @@
             transition: color .15s, background .15s;
         }
 
-        .camara button+button {
+        .camara button + button {
             border-left: 1px solid var(--linea);
         }
 
@@ -299,11 +309,13 @@
 
         <p id="aviso" class="aviso oculto" role="status"></p>
 
-        <!-- Interruptor de fondo (solo visible en modo 3D) -->
+        <!-- Interruptor de fondo -->
         <div class="escenarios" id="escenarios" role="group" aria-label="Fondo de la escena">
             <button type="button" id="fondoSi" class="activo" aria-pressed="true">Con fondo</button>
             <button type="button" id="fondoNo" aria-pressed="false">Sin fondo</button>
         </div>
+
+        <p class="nota">El fondo se aplica al visor 3D. En AR el fondo es siempre la cámara del celular.</p>
 
         <!-- Controles de cámara -->
         <div class="camara" role="group" aria-label="Controles de cámara">
@@ -321,19 +333,18 @@
     <script>
         (function () {
             'use strict';
-            var mv = document.getElementById('mv');
-            var cargando = document.getElementById('cargando');
-            var fallo = document.getElementById('fallo');
-            var barra = document.getElementById('barra');
-            var pct = document.getElementById('pct');
-            var btn3d = document.getElementById('btn3d');
-            var btnAR = document.getElementById('btnAR');
-            var aviso = document.getElementById('aviso');
+            var mv         = document.getElementById('mv');
+            var cargando   = document.getElementById('cargando');
+            var fallo      = document.getElementById('fallo');
+            var barra      = document.getElementById('barra');
+            var pct        = document.getElementById('pct');
+            var btn3d      = document.getElementById('btn3d');
+            var btnAR      = document.getElementById('btnAR');
+            var aviso      = document.getElementById('aviso');
             var reintentar = document.getElementById('reintentar');
-            var escena = document.getElementById('escena');
-            var escenarios = document.getElementById('escenarios');
-            var fondoSi = document.getElementById('fondoSi');
-            var fondoNo = document.getElementById('fondoNo');
+            var escena     = document.getElementById('escena');
+            var fondoSi    = document.getElementById('fondoSi');
+            var fondoNo    = document.getElementById('fondoNo');
 
             /* ---- Carga ------------------------------------ */
             mv.addEventListener('progress', function (e) {
@@ -356,19 +367,17 @@
 
             /* ---- Modos 3D / AR ---------------------------- */
             btn3d.addEventListener('click', function () {
-                btn3d.classList.add('activo'); btnAR.classList.remove('activo');
+                btn3d.classList.add('activo');   btnAR.classList.remove('activo');
                 btn3d.setAttribute('aria-pressed', 'true');
                 btnAR.setAttribute('aria-pressed', 'false');
                 aviso.classList.add('oculto');
-                escenarios.classList.remove('oculto');
                 mv.autoRotate = true;
             });
 
             btnAR.addEventListener('click', function () {
-                btnAR.classList.add('activo'); btn3d.classList.remove('activo');
+                btnAR.classList.add('activo');   btn3d.classList.remove('activo');
                 btnAR.setAttribute('aria-pressed', 'true');
                 btn3d.setAttribute('aria-pressed', 'false');
-                escenarios.classList.add('oculto');
                 if (mv.canActivateAR) {
                     aviso.classList.add('oculto');
                     mv.activateAR();
@@ -383,7 +392,6 @@
                     btn3d.classList.add('activo'); btnAR.classList.remove('activo');
                     btn3d.setAttribute('aria-pressed', 'true');
                     btnAR.setAttribute('aria-pressed', 'false');
-                    escenarios.classList.remove('oculto');
                     mv.autoRotate = true;
                 }
             });
@@ -401,21 +409,17 @@
             fondoSi.addEventListener('click', function () { setFondo('si'); });
             fondoNo.addEventListener('click', function () { setFondo('no'); });
 
-            /* ---- Controles de cámara ----------------------
-               getCameraOrbit() devuelve { theta, phi, radius } en radianes/metros.
-               Escribimos de vuelta en grados para que model-viewer interpole suave.
-               fieldOfView acepta "Xdeg" y controla el zoom óptico.
-            ------------------------------------------------- */
+            /* ---- Controles de cámara ---------------------- */
             var PASO_GIRO = 15;
-            var PASO_FOV = 5;
-            var FOV_MIN = 10;
-            var FOV_MAX = 90;
+            var PASO_FOV  = 5;
+            var FOV_MIN   = 10;
+            var FOV_MAX   = 90;
 
             function orbitActual() {
                 var raw = mv.getCameraOrbit();
                 return {
-                    theta: raw.theta * (180 / Math.PI),
-                    phi: raw.phi * (180 / Math.PI),
+                    theta:  raw.theta  * (180 / Math.PI),
+                    phi:    raw.phi    * (180 / Math.PI),
                     radius: raw.radius
                 };
             }
