@@ -608,8 +608,20 @@
     const FRENO_INPUT = 28;      // m/s² frenada con input
     const FRICCION = 8;      // m/s² desaceleración pasiva
     const GIRO_MAX = 1.8;    // rad/s giro máximo
+    const ACEL_FUERA = 0.45;
+    const GIRO_FUERA = 0.7;
+    const FRICCION_FUERA = 14;
     const LIMITE_MUNDO = 90 * FACTOR_MUNDO; // m desde el centro (zona segura)
     const REBOTE = 0.3;    // factor de rebote
+    const MEDIO_LARGO = 2.75;   // el auto mide 5.5 m
+    const MEDIO_ANCHO = 1.1;    // aproximado
+    const MARGEN_PARED = 0.35;  // colchón más allá del paragolpes (m)
+    const ALTURA_PARAGOLPES = 0.25; // baja: los neumáticos miden 0.34 m post-escala
+
+    // Spawn sobre la recta (coordenadas PRE-escala de pista.glb)
+    const SPAWN_X = 50.5 * FACTOR_MUNDO;
+    const SPAWN_Z = 36.6 * FACTOR_MUNDO;
+    const SPAWN_ANG = Math.PI / 2; // mirando a lo largo de la recta (hacia -X)
 
     /* =========================================================
        TECLADO
@@ -659,7 +671,6 @@
     const ZONA_MUERTA_GIRO = 3;   // grados
     const ZONA_MUERTA_ACEL = 5;   // grados
     const SENSIB_GIRO = 0.04; // fracción de input por grado extra
-    const SENSIB_ACEL = 0.03;
 
     // Leer sensor y traducir a input analógico (0-1)
     // Se sobreescribe sobre los valores del teclado/táctil solo si el sensor está activo
@@ -697,8 +708,6 @@
 
       if (GYRO_INVERTIR_VOLANTE) volante = -volante;
       if (GYRO_INVERTIR_ACEL) ace = -ace;
-
-      console.log({ ang, beta, gamma, volante, ace });
 
       gammaActual = volante;
       betaActual = ace;
@@ -809,6 +818,10 @@
       pantallaHorizontal();
       // Pedir permiso del sensor DENTRO del gesto del toque
       await pedirPermisoSensor();
+      AUTO.x = SPAWN_X;
+      AUTO.z = SPAWN_Z;
+      AUTO.angulo = SPAWN_ANG;
+      AUTO.vel = 0;
       AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
       pantallaGarage.classList.add('oculto');
       controlesTactiles.style.display = '';
@@ -831,14 +844,27 @@
     const _raycasterSuelo = new THREE.Raycaster();
     const _origenRayo = new THREE.Vector3();
     const _dirAbajo = new THREE.Vector3(0, -1, 0);
+    const _mallasSuelo = [];
+    let _mallaSueloActual = null;
+    const _mallasObstaculos = [];
+    const _raycasterPared = new THREE.Raycaster();
+    _raycasterPared.far = MARGEN_PARED;
+    const _origenPared = new THREE.Vector3();
+    const _dirPared = new THREE.Vector3();
+    const _normalPared = new THREE.Vector3();
 
     function alturaSueloEn(x, z) {
       if (!pista) return 0;
-      pista.updateMatrixWorld(true);
       _origenRayo.set(x, 50, z);
       _raycasterSuelo.set(_origenRayo, _dirAbajo);
-      const hits = _raycasterSuelo.intersectObject(pista, true);
-      return hits.length > 0 ? hits[0].point.y : 0;
+      const hits = _mallasSuelo.length > 0
+        ? _raycasterSuelo.intersectObjects(_mallasSuelo, true)
+        : _raycasterSuelo.intersectObject(pista, true);
+      if (hits.length > 0) {
+        _mallaSueloActual = hits[0].object.name;
+        return hits[0].point.y;
+      }
+      return AUTO.y;
     }
 
     // Carga opcional del escenario desde ./pista.glb (si aún no existe, sigue con el piso actual)
@@ -853,9 +879,24 @@
           if (nodo.isMesh) {
             nodo.castShadow = true;
             nodo.receiveShadow = true;
+            if (['Mapa', 'tierra', 'Tierra'].includes(nodo.name)) {
+              _mallasSuelo.push(nodo);
+            } else if (
+              nodo.name.startsWith('Fence') ||
+              nodo.parent?.name.startsWith('Fence') ||
+              nodo.name.startsWith('Cylinder') ||
+              nodo.parent?.name.startsWith('Cylinder')
+            ) {
+              _mallasObstaculos.push(nodo);
+            }
           }
         });
+        console.log('obstaculos:', _mallasObstaculos.length);
+        if (_mallasSuelo.length === 0) {
+          console.warn('pista.glb: no se encontraron mallas de suelo (Mapa, tierra, Tierra).');
+        }
         escena.add(pista);
+        pista.updateMatrixWorld(true);
         if (modelo) {
           AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
           modelo.position.y = AUTO.y;
@@ -950,6 +991,12 @@
     const _vecDir = new THREE.Vector3();
 
     function actualizarFisica(dt) {
+      AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
+      const enAsfalto = _mallaSueloActual === 'Mapa';
+      const factorAcel = enAsfalto ? 1 : ACEL_FUERA;
+      const factorGiro = enAsfalto ? 1 : GIRO_FUERA;
+      const friccionActual = FRICCION + (enAsfalto ? 0 : FRICCION_FUERA);
+
       /* -- Input del giroscopio (se combina con teclado/táctil) */
       let sensorAce = false;
       let sensorFre = false;
@@ -981,20 +1028,20 @@
       const usarFre = input.fre || sensorFre;
 
       if (usarAce) {
-        AUTO.vel += ACEL * dt;
+        AUTO.vel += (ACEL * factorAcel) * dt;
       } else if (usarFre) {
         if (AUTO.vel > 0.1) {
           AUTO.vel -= FRENO_INPUT * dt;
         } else {
           // Reversa
-          AUTO.vel -= (ACEL * 0.5) * dt;
+          AUTO.vel -= (ACEL * 0.5 * factorAcel) * dt;
         }
       } else {
         // Fricción pasiva
         if (AUTO.vel > 0) {
-          AUTO.vel = Math.max(0, AUTO.vel - FRICCION * dt);
+          AUTO.vel = Math.max(0, AUTO.vel - friccionActual * dt);
         } else if (AUTO.vel < 0) {
-          AUTO.vel = Math.min(0, AUTO.vel + FRICCION * dt);
+          AUTO.vel = Math.min(0, AUTO.vel + friccionActual * dt);
         }
       }
 
@@ -1006,13 +1053,14 @@
 
       if (velAbs > 0.3) {
         let giroFrame = 0;
+        const giroMaxActual = GIRO_MAX * factorGiro;
 
         if (input.izq) {
-          giroFrame = GIRO_MAX * Math.abs(velFrac);
+          giroFrame = giroMaxActual * Math.abs(velFrac);
         } else if (input.der) {
-          giroFrame = -GIRO_MAX * Math.abs(velFrac);
+          giroFrame = -giroMaxActual * Math.abs(velFrac);
         } else if (sensorActivo && _giroSensor !== 0) {
-          giroFrame = _giroSensor * GIRO_MAX * Math.abs(velFrac);
+          giroFrame = _giroSensor * giroMaxActual * Math.abs(velFrac);
         }
 
         // Invertir dirección del giro en reversa
@@ -1027,6 +1075,39 @@
 
       AUTO.x += -dirX * AUTO.vel * dt;    // -Z es el frente
       AUTO.z += -dirZ * AUTO.vel * dt;
+
+      /* -- Rebote contra vallas y neumáticos (raycast horizontal) - */
+      if (_mallasObstaculos.length > 0) {
+        const signoVel = AUTO.vel >= 0 ? 1 : -1;
+        const avanX = -dirX * signoVel;   // hacia donde avanza el auto
+        const avanZ = -dirZ * signoVel;
+        const latX = -avanZ;              // lateral del avance
+        const latZ = avanX;
+
+        const rayos = [
+          { ox: avanX * MEDIO_LARGO, oz: avanZ * MEDIO_LARGO, dx: avanX, dz: avanZ, frente: true },
+          { ox: latX * MEDIO_ANCHO, oz: latZ * MEDIO_ANCHO, dx: latX, dz: latZ, frente: false },
+          { ox: -latX * MEDIO_ANCHO, oz: -latZ * MEDIO_ANCHO, dx: -latX, dz: -latZ, frente: false },
+        ];
+
+        for (const r of rayos) {
+          _origenPared.set(AUTO.x + r.ox, AUTO.y + ALTURA_PARAGOLPES, AUTO.z + r.oz);
+          _dirPared.set(r.dx, 0, r.dz);
+          _raycasterPared.set(_origenPared, _dirPared);
+          const hits = _raycasterPared.intersectObjects(_mallasObstaculos, false);
+          if (hits.length === 0 || !hits[0].face) continue;
+
+          _normalPared.copy(hits[0].face.normal).transformDirection(hits[0].object.matrixWorld);
+          if (_normalPared.dot(_dirPared) > 0) _normalPared.negate();
+
+          const penetracion = MARGEN_PARED - hits[0].distance;
+          if (penetracion > 0) {
+            AUTO.x += _normalPared.x * penetracion;
+            AUTO.z += _normalPared.z * penetracion;
+            if (r.frente) AUTO.vel *= -REBOTE;
+          }
+        }
+      }
 
       /* -- Límites con rebote suave --------------------------- */
       if (AUTO.x > LIMITE_MUNDO) { AUTO.x = LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
