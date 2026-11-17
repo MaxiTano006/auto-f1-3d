@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto F1 — Juego</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    /* ---- Reset -------------------------------------------- */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0d0d0d;
+      --panel: #141414;
+      --linea: #2a2a2a;
+      --texto: #f2f2f2;
+      --suave: #9a9a9a;
+      --acento: #e30613;
+      --fuente: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--texto);
+      font-family: var(--fuente);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    /* ---- Overlay base ------------------------------------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      background: var(--bg);
+      z-index: 20;
+    }
+
+    .overlay.oculto {
+      display: none;
+    }
+
+    /* ---- Pantalla de carga -------------------------------- */
+    .carga-titulo {
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--suave);
+    }
+
+    .barra-wrap {
+      width: 220px;
+      height: 3px;
+      background: var(--linea);
+    }
+
+    #barraProgreso {
+      height: 100%;
+      width: 0%;
+      background: var(--acento);
+      transition: width 0.2s ease;
+    }
+
+    #textoPct {
+      font-size: 0.72rem;
+      color: var(--suave);
+      letter-spacing: 0.08em;
+    }
+
+    /* ---- Panel de error ----------------------------------- */
+    .error-titulo {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .error-cuerpo {
+      font-size: 0.82rem;
+      color: var(--suave);
+      text-align: center;
+      line-height: 1.65;
+      max-width: 280px;
+    }
+
+    .btn-reintentar {
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.65rem 1.6rem;
+      border: 1px solid var(--acento);
+      border-radius: 0;
+      background: transparent;
+      color: var(--texto);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-reintentar:hover {
+      background: var(--acento);
+    }
+
+    .btn-reintentar:focus-visible {
+      outline: 2px solid var(--texto);
+      outline-offset: 3px;
+    }
+
+    /* ---- Pantalla de Garaje ------------------------------- */
+    #pantallaGarage {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2rem 1rem 2.5rem;
+      pointer-events: none;
+    }
+
+    #pantallaGarage.oculto {
+      display: none;
+    }
+
+    .garage-header {
+      background: rgba(20, 20, 20, 0.9);
+      border: 1px solid var(--linea);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      pointer-events: all;
+    }
+
+    .garage-flecha {
+      font: inherit;
+      font-size: 1.2rem;
+      font-weight: 700;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--linea);
+      background: var(--bg);
+      color: var(--texto);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .garage-flecha:hover {
+      border-color: var(--acento);
+      background: var(--acento);
+    }
+
+    .garage-info {
+      min-width: 170px;
+      text-align: center;
+    }
+
+    .garage-etiqueta {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--suave);
+      margin-bottom: 0.2rem;
+    }
+
+    #nombreVehiculo {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Tarjeta central para vehículos bloqueados (silueta + candado) */
+    #vistaBloqueado {
+      background: rgba(20, 20, 20, 0.92);
+      border: 1px solid var(--linea);
+      padding: 1.75rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+      max-width: 300px;
+      text-align: center;
+      pointer-events: all;
+    }
+
+    #vistaBloqueado.oculto {
+      display: none;
+    }
+
+    .silueta-wrap {
+      position: relative;
+      width: 180px;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .silueta-svg {
+      width: 100%;
+      height: 100%;
+      fill: #050505;
+      stroke: #2a2a2a;
+      stroke-width: 2;
+    }
+
+    .candado-badge {
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      background: rgba(13, 13, 13, 0.92);
+      border: 1px solid var(--acento);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--texto);
+    }
+
+    .bloqueado-texto {
+      font-size: 0.78rem;
+      color: var(--suave);
+      line-height: 1.45;
+    }
+
+    /* ---- Botón EMPEZAR ------------------------------------ */
+    #btnEmpezar {
+      pointer-events: all;
+      font: inherit;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 1rem 2.5rem;
+      border: 2px solid var(--acento);
+      border-radius: 0;
+      background: var(--acento);
+      color: #fff;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    #btnEmpezar:hover:not(:disabled) {
+      background: #b0040e;
+      border-color: #b0040e;
+    }
+
+    #btnEmpezar:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+    }
+
+    #btnEmpezar:disabled {
+      background: var(--panel);
+      border-color: var(--linea);
+      color: var(--suave);
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    /* ---- Aviso sensor no disponible ----------------------- */
+    #avisoSensor {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15;
+      font-size: 0.72rem;
+      color: var(--suave);
+      background: rgba(20, 20, 20, 0.85);
+      padding: 6px 12px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    #avisoSensor.oculto {
+      display: none;
+    }
+
+    /* ---- Controles táctiles ------------------------------- */
+    /*  IZQUIERDA / DERECHA: fila inferior izquierda
+        ACELERAR: inferior derecha (arriba en la esquina)
+        FRENO:    inferior derecha (abajo en la esquina)         */
+    .controles-tactiles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      /* el contenedor no intercepta */
+      z-index: 10;
+    }
+
+    .btn-tactil {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border: 1px solid rgba(242, 242, 242, 0.25);
+      border-radius: 0;
+      background: rgba(20, 20, 20, 0.45);
+      color: rgba(242, 242, 242, 0.75);
+      font: inherit;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: all;
+      /* cada botón sí recibe eventos */
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .btn-tactil:active {
+      background: rgba(227, 6, 19, 0.5);
+    }
+
+    /* Posiciones */
+    #tIzq {
+      bottom: 24px;
+      left: 16px;
+    }
+
+    #tDer {
+      bottom: 24px;
+      left: 102px;
+    }
+
+    #tAce {
+      bottom: 108px;
+      right: 16px;
+    }
+
+    #tFre {
+      bottom: 24px;
+      right: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Pantalla de carga -->
+  <div id="pantallaCarga" class="overlay" role="status" aria-label="Cargando modelo 3D">
+    <p class="carga-titulo">Cargando modelo…</p>
+    <div class="barra-wrap" aria-hidden="true">
+      <div id="barraProgreso"></div>
+    </div>
+    <span id="textoPct" aria-live="polite">0%</span>
+  </div>
+
+  <!-- Panel de error -->
+  <div id="panelError" class="overlay oculto" role="alert">
+    <p class="error-titulo">No se pudo cargar el modelo</p>
+    <p class="error-cuerpo">Verificá tu conexión a internet e intentá nuevamente.</p>
+    <button type="button" class="btn-reintentar" onclick="location.reload()">Reintentar</button>
+  </div>
+
+  <!-- Pantalla de Garaje -->
+  <div id="pantallaGarage" class="oculto" role="region" aria-label="Garaje de vehículos">
+    <div class="garage-header">
+      <button type="button" class="garage-flecha" id="btnVehiculoAnt" aria-label="Vehículo anterior">&#9664;</button>
+      <div class="garage-info">
+        <span class="garage-etiqueta">Garaje</span>
+        <p id="nombreVehiculo" aria-live="polite">Auto F1</p>
+      </div>
+      <button type="button" class="garage-flecha" id="btnVehiculoSig" aria-label="Vehículo siguiente">&#9654;</button>
+    </div>
+
+    <div id="vistaBloqueado" class="oculto" aria-live="polite">
+      <div class="silueta-wrap">
+        <!-- Silueta Tanque -->
+        <svg id="siluetaTanque" class="silueta-svg" viewBox="0 0 200 100" aria-hidden="true">
+          <path d="M25 65 L45 48 L145 48 L168 65 Z M60 48 L72 28 L122 28 L132 48 Z M128 35 L185 35 L185 41 L128 41 Z" />
+          <rect x="18" y="65" width="160" height="22" rx="11" />
+        </svg>
+        <!-- Silueta Tren delantero (forklift) -->
+        <svg id="siluetaForklift" class="silueta-svg" viewBox="0 0 200 100" style="display:none" aria-hidden="true">
+          <path
+            d="M35 72 L35 38 L58 24 L110 24 L118 48 L135 52 L135 72 Z M138 18 L145 18 L145 78 L182 78 L182 83 L138 83 Z" />
+          <circle cx="55" cy="76" r="13" />
+          <circle cx="115" cy="76" r="13" />
+        </svg>
+        <!-- Candado -->
+        <div class="candado-badge" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="11" width="14" height="10" rx="1" fill="#0d0d0d" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        </div>
+      </div>
+      <p class="bloqueado-texto">Disponible en la próxima actualización</p>
+    </div>
+
+    <button id="btnEmpezar" type="button">EMPEZAR</button>
+  </div>
+
+  <!-- Aviso sensor -->
+  <div id="avisoSensor" class="oculto" role="status" aria-live="polite">
+    Giroscopio no disponible. Usá los botones.
+  </div>
+
+  <!-- Botones táctiles (siempre en DOM, ocultamos hasta que empiece) -->
+  <div class="controles-tactiles" id="controlesTactiles" style="display:none">
+    <button type="button" class="btn-tactil" id="tIzq" aria-label="Girar izquierda">&#9664;</button>
+    <button type="button" class="btn-tactil" id="tDer" aria-label="Girar derecha">&#9654;</button>
+    <button type="button" class="btn-tactil" id="tAce" aria-label="Acelerar">&#9650;</button>
+    <button type="button" class="btn-tactil" id="tFre" aria-label="Frenar / Reversa">&#9660;</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    /* =========================================================
+       REFERENCIAS DOM
+       ========================================================= */
+    const pantallaCarga = document.getElementById('pantallaCarga');
+    const panelError = document.getElementById('panelError');
+    const barraProgreso = document.getElementById('barraProgreso');
+    const textoPct = document.getElementById('textoPct');
+    const btnEmpezar = document.getElementById('btnEmpezar');
+    const pantallaGarage = document.getElementById('pantallaGarage');
+    const btnVehiculoAnt = document.getElementById('btnVehiculoAnt');
+    const btnVehiculoSig = document.getElementById('btnVehiculoSig');
+    const nombreVehiculo = document.getElementById('nombreVehiculo');
+    const vistaBloqueado = document.getElementById('vistaBloqueado');
+    const siluetaTanque = document.getElementById('siluetaTanque');
+    const siluetaForklift = document.getElementById('siluetaForklift');
+    const avisoSensor = document.getElementById('avisoSensor');
+    const controlesTactiles = document.getElementById('controlesTactiles');
+
+    /* =========================================================
+       RENDERER
+       ========================================================= */
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x0d0d0d);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    /* =========================================================
+       ESCENA
+       ========================================================= */
+    const escena = new THREE.Scene();
+    escena.background = new THREE.Color(0x0d0d0d);
+
+    /* =========================================================
+       CÁMARA
+       ========================================================= */
+    const camara = new THREE.PerspectiveCamera(
+      50,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camara.position.set(0, 8, 15);
+    camara.lookAt(0, 0.5, 0);
+
+    // Posición suavizada para el lerp de la cámara
+    const camaraPos = new THREE.Vector3(0, 8, 15);
+    const camaraTarget = new THREE.Vector3();
+
+    /* =========================================================
+       LUCES
+       ========================================================= */
+    const luzHemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.75);
+    escena.add(luzHemi);
+
+    const luzDir = new THREE.DirectionalLight(0xffffff, 1.1);
+    luzDir.position.set(10, 20, 10);
+    luzDir.castShadow = true;
+    luzDir.shadow.mapSize.width = 1024;
+    luzDir.shadow.mapSize.height = 1024;
+    luzDir.shadow.camera.near = 1;
+    luzDir.shadow.camera.far = 80;
+    luzDir.shadow.camera.left = -20;
+    luzDir.shadow.camera.right = 20;
+    luzDir.shadow.camera.top = 20;
+    luzDir.shadow.camera.bottom = -20;
+    luzDir.shadow.bias = -0.001;
+    escena.add(luzDir);
+
+    /* =========================================================
+       PISO 200 × 200 m
+       ========================================================= */
+    const piso = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshLambertMaterial({ color: 0x141414 })
+    );
+    piso.rotation.x = -Math.PI / 2;
+    piso.receiveShadow = true;
+    escena.add(piso);
+
+    /* =========================================================
+       RESIZE
+       ========================================================= */
+    window.addEventListener('resize', () => {
+      camara.aspect = window.innerWidth / window.innerHeight;
+      camara.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* =========================================================
+       ESTADO DEL JUEGO
+       ========================================================= */
+    let jugando = false;
+    let modelo = null;   // group del auto cargado
+    let pista = null;   // group de la pista (opcional hasta que exista pista.glb)
+
+    /* -- Entrada de controles (teclado + táctil + sensor) --- */
+    const input = { izq: false, der: false, ace: false, fre: false };
+
+    /* -- Estado físico del auto ----------------------------- */
+    const AUTO = {
+      x: 0, z: 0,          // posición en el mundo (m)
+      angulo: 0,            // rotación en Y (rad)
+      vel: 0,               // velocidad longitudinal (m/s)
+    };
+
+    /* Constantes físicas */
+    const VEL_MAX = 50;      // m/s ≈ 180 km/h
+    const VEL_MIN = -15;      // reversa máxima (~54 km/h)
+    const ACEL = 18;      // m/s² aceleración
+    const FRENO_INPUT = 28;      // m/s² frenada con input
+    const FRICCION = 8;      // m/s² desaceleración pasiva
+    const GIRO_MAX = 1.8;    // rad/s giro máximo
+    const LIMITE_MUNDO = 90;      // m desde el centro (zona segura)
+    const REBOTE = 0.3;    // factor de rebote
+
+    /* =========================================================
+       TECLADO
+       ========================================================= */
+    window.addEventListener('keydown', (e) => {
+      if (!jugando) return;
+      if (e.key === 'ArrowLeft') input.izq = true;
+      if (e.key === 'ArrowRight') input.der = true;
+      if (e.key === 'ArrowUp') input.ace = true;
+      if (e.key === 'ArrowDown') input.fre = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') input.izq = false;
+      if (e.key === 'ArrowRight') input.der = false;
+      if (e.key === 'ArrowUp') input.ace = false;
+      if (e.key === 'ArrowDown') input.fre = false;
+    });
+
+    /* =========================================================
+       BOTONES TÁCTILES
+       ========================================================= */
+    function enlazarTactil(id, tecla) {
+      const btn = document.getElementById(id);
+      btn.addEventListener('touchstart', (e) => { e.preventDefault(); input[tecla] = true; }, { passive: false });
+      btn.addEventListener('touchend', (e) => { e.preventDefault(); input[tecla] = false; }, { passive: false });
+      btn.addEventListener('touchcancel', (e) => { e.preventDefault(); input[tecla] = false; }, { passive: false });
+      // mousedown/up para prueba en compu
+      btn.addEventListener('mousedown', () => input[tecla] = true);
+      btn.addEventListener('mouseup', () => input[tecla] = false);
+      btn.addEventListener('mouseleave', () => input[tecla] = false);
+    }
+    enlazarTactil('tIzq', 'izq');
+    enlazarTactil('tDer', 'der');
+    enlazarTactil('tAce', 'ace');
+    enlazarTactil('tFre', 'fre');
+
+    /* =========================================================
+       GIROSCOPIO
+       ========================================================= */
+    let sensorActivo = false;
+    let neutralGamma = 0;   // inclinación lateral neutral (°)
+    let neutralBeta = 0;   // inclinación frontal neutral (°)
+
+    // Umbral mínimo para evitar deriva
+    const ZONA_MUERTA_GIRO = 3;   // grados
+    const ZONA_MUERTA_ACEL = 5;   // grados
+    const SENSIB_GIRO = 0.04; // fracción de input por grado extra
+    const SENSIB_ACEL = 0.03;
+
+    // Leer sensor y traducir a input analógico (0-1)
+    // Se sobreescribe sobre los valores del teclado/táctil solo si el sensor está activo
+    let gammaActual = 0;
+    let betaActual = 0;
+
+    function onOrientacion(e) {
+      gammaActual = e.gamma || 0;
+      betaActual = e.beta || 0;
+    }
+
+    function calibrarYActivar() {
+      neutralGamma = gammaActual;
+      neutralBeta = betaActual;
+      sensorActivo = true;
+    }
+
+    async function pedirPermisoSensor() {
+      // iOS requiere llamar requestPermission() DENTRO del gesto del usuario
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const permiso = await DeviceOrientationEvent.requestPermission();
+          if (permiso === 'granted') {
+            window.addEventListener('deviceorientation', onOrientacion);
+            calibrarYActivar();
+          } else {
+            avisoSensor.classList.remove('oculto');
+          }
+        } catch {
+          avisoSensor.classList.remove('oculto');
+        }
+      } else if ('DeviceOrientationEvent' in window) {
+        // Android / browsers que no requieren permiso
+        window.addEventListener('deviceorientation', onOrientacion);
+        // Esperar un frame para tener la primera lectura antes de calibrar
+        setTimeout(calibrarYActivar, 150);
+      } else {
+        // Sensor no disponible en absoluto
+        avisoSensor.classList.remove('oculto');
+      }
+    }
+
+    /* =========================================================
+       GARAJE Y BOTÓN EMPEZAR
+       ========================================================= */
+    const VEHICULOS = [
+      { nombre: 'Auto F1', bloqueado: false, tipo: 'f1' },
+      { nombre: 'Tanque', bloqueado: true, tipo: 'tanque' },
+      { nombre: 'Tren delantero', bloqueado: true, tipo: 'forklift' },
+    ];
+    let indiceVehiculo = 0;
+
+    function actualizarGarage() {
+      const v = VEHICULOS[indiceVehiculo];
+      nombreVehiculo.textContent = v.nombre;
+
+      if (v.bloqueado) {
+        if (modelo) modelo.visible = false;
+        vistaBloqueado.classList.remove('oculto');
+        siluetaTanque.style.display = v.tipo === 'tanque' ? '' : 'none';
+        siluetaForklift.style.display = v.tipo === 'forklift' ? '' : 'none';
+        btnEmpezar.disabled = true;
+      } else {
+        if (modelo) modelo.visible = true;
+        vistaBloqueado.classList.add('oculto');
+        btnEmpezar.disabled = false;
+      }
+    }
+
+    btnVehiculoAnt.addEventListener('click', () => {
+      indiceVehiculo = (indiceVehiculo - 1 + VEHICULOS.length) % VEHICULOS.length;
+      actualizarGarage();
+    });
+
+    btnVehiculoSig.addEventListener('click', () => {
+      indiceVehiculo = (indiceVehiculo + 1) % VEHICULOS.length;
+      actualizarGarage();
+    });
+
+    btnEmpezar.addEventListener('click', async () => {
+      if (VEHICULOS[indiceVehiculo].bloqueado) return;
+      // Pedir permiso del sensor DENTRO del gesto del toque
+      await pedirPermisoSensor();
+      pantallaGarage.classList.add('oculto');
+      controlesTactiles.style.display = '';
+      jugando = true;
+    });
+
+    /* =========================================================
+       CARGA DEL MODELO
+       ========================================================= */
+    let cargado = false;
+    const timeoutCarga = setTimeout(() => {
+      if (!cargado) {
+        pantallaCarga.classList.add('oculto');
+        panelError.classList.remove('oculto');
+      }
+    }, 15000);
+
+    const loader = new GLTFLoader();
+
+    // Carga opcional del escenario desde ./pista.glb (si aún no existe, sigue con el piso actual)
+    loader.load(
+      './pista.glb',
+      (gltf) => {
+        pista = gltf.scene;
+        pista.traverse((nodo) => {
+          if (nodo.isMesh) {
+            nodo.castShadow = true;
+            nodo.receiveShadow = true;
+          }
+        });
+        escena.add(pista);
+      },
+      undefined,
+      () => {
+        // Si pista.glb todavía no está en juego/, se ignora el error y se conserva el escenario actual
+      }
+    );
+
+    loader.load(
+      '../auto.glb',
+
+      /* onLoad */
+      (gltf) => {
+        cargado = true;
+        clearTimeout(timeoutCarga);
+
+        modelo = gltf.scene;
+
+        // Frente hacia -Z
+        modelo.rotation.y = Math.PI;
+
+        // Centrar en XZ, apoyar en el piso
+        const caja = new THREE.Box3().setFromObject(modelo);
+        modelo.position.x -= (caja.max.x + caja.min.x) / 2;
+        modelo.position.z -= (caja.max.z + caja.min.z) / 2;
+        modelo.position.y -= caja.min.y;
+
+        modelo.traverse((nodo) => {
+          if (nodo.isMesh) {
+            nodo.castShadow = true;
+            nodo.receiveShadow = true;
+          }
+        });
+
+        escena.add(modelo);
+
+        barraProgreso.style.width = '100%';
+        textoPct.textContent = '100%';
+        setTimeout(() => {
+          pantallaCarga.classList.add('oculto');
+          actualizarGarage();
+          pantallaGarage.classList.remove('oculto'); // mostrar garaje cuando ya cargó
+        }, 350);
+      },
+
+      /* onProgress */
+      (xhr) => {
+        if (xhr.total > 0) {
+          const pct = Math.round((xhr.loaded / xhr.total) * 100);
+          barraProgreso.style.width = pct + '%';
+          textoPct.textContent = pct + '%';
+        }
+      },
+
+      /* onError */
+      () => {
+        clearTimeout(timeoutCarga);
+        pantallaCarga.classList.add('oculto');
+        panelError.classList.remove('oculto');
+      }
+    );
+
+    /* =========================================================
+       FÍSICA
+       ========================================================= */
+    const _vecDir = new THREE.Vector3();
+
+    function actualizarFisica(dt) {
+      /* -- Input del giroscopio (superpone al teclado/táctil) - */
+      if (sensorActivo) {
+        const dGamma = gammaActual - neutralGamma;
+        const dBeta = betaActual - neutralBeta;
+
+        // Giro lateral
+        if (Math.abs(dGamma) > ZONA_MUERTA_GIRO) {
+          const frac = Math.min(1, (Math.abs(dGamma) - ZONA_MUERTA_GIRO) * SENSIB_GIRO);
+          input.izq = dGamma < 0 ? frac > 0.1 : false;
+          input.der = dGamma > 0 ? frac > 0.1 : false;
+          // Usar valor analógico directamente para giro suave:
+          _giroSensor = (dGamma < 0 ? -1 : 1) * frac;
+        } else {
+          input.izq = false;
+          input.der = false;
+          _giroSensor = 0;
+        }
+
+        // Aceleración por inclinación frontal
+        if (dBeta < -ZONA_MUERTA_ACEL) {
+          // inclinado hacia adelante → acelerar
+          input.ace = true;
+          input.fre = false;
+        } else if (dBeta > ZONA_MUERTA_ACEL) {
+          input.ace = false;
+          input.fre = true;
+        } else {
+          input.ace = false;
+          input.fre = false;
+        }
+      }
+
+      /* -- Aceleración / freno -------------------------------- */
+      if (input.ace) {
+        AUTO.vel += ACEL * dt;
+      } else if (input.fre) {
+        if (AUTO.vel > 0.1) {
+          AUTO.vel -= FRENO_INPUT * dt;
+        } else {
+          // Reversa
+          AUTO.vel -= (ACEL * 0.5) * dt;
+        }
+      } else {
+        // Fricción pasiva
+        if (AUTO.vel > 0) {
+          AUTO.vel = Math.max(0, AUTO.vel - FRICCION * dt);
+        } else if (AUTO.vel < 0) {
+          AUTO.vel = Math.min(0, AUTO.vel + FRICCION * dt);
+        }
+      }
+
+      AUTO.vel = Math.max(VEL_MIN, Math.min(VEL_MAX, AUTO.vel));
+
+      /* -- Giro (proporcional a la velocidad) ----------------- */
+      const velFrac = AUTO.vel / VEL_MAX;        // –1 … +1
+      const velAbs = Math.abs(AUTO.vel);
+
+      if (velAbs > 0.3) {
+        let giroFrame = 0;
+
+        if (sensorActivo && _giroSensor !== 0) {
+          giroFrame = _giroSensor * GIRO_MAX * Math.abs(velFrac);
+        } else {
+          if (input.izq) giroFrame = GIRO_MAX * Math.abs(velFrac);
+          if (input.der) giroFrame = -GIRO_MAX * Math.abs(velFrac);
+        }
+
+        // Invertir dirección del giro en reversa
+        if (AUTO.vel < 0) giroFrame = -giroFrame;
+
+        AUTO.angulo += giroFrame * dt;
+      }
+
+      /* -- Movimiento ----------------------------------------- */
+      const dirX = Math.sin(AUTO.angulo);  // frente del auto en X
+      const dirZ = Math.cos(AUTO.angulo);  // frente del auto en Z
+
+      AUTO.x += -dirX * AUTO.vel * dt;    // -Z es el frente
+      AUTO.z += -dirZ * AUTO.vel * dt;
+
+      /* -- Límites con rebote suave --------------------------- */
+      if (AUTO.x > LIMITE_MUNDO) { AUTO.x = LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
+      if (AUTO.x < -LIMITE_MUNDO) { AUTO.x = -LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
+      if (AUTO.z > LIMITE_MUNDO) { AUTO.z = LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
+      if (AUTO.z < -LIMITE_MUNDO) { AUTO.z = -LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
+    }
+
+    // Variable auxiliar para el input analógico del giroscopio
+    let _giroSensor = 0;
+
+    /* =========================================================
+       CÁMARA DE PERSECUCIÓN
+       ========================================================= */
+    const CAM_DISTANCIA = 14;  // m detrás del auto
+    const CAM_ALTURA = 6;  // m sobre el auto
+    const CAM_LERP = 6;  // suavizado (factor dt)
+
+    function actualizarCamara(dt) {
+      if (!modelo || !jugando) return;
+
+      // Punto "detrás del auto" según su ángulo actual
+      const detrasX = AUTO.x + Math.sin(AUTO.angulo) * CAM_DISTANCIA;
+      const detrasZ = AUTO.z + Math.cos(AUTO.angulo) * CAM_DISTANCIA;
+
+      camaraPos.x += (detrasX - camaraPos.x) * CAM_LERP * dt;
+      camaraPos.y += (CAM_ALTURA - camaraPos.y) * CAM_LERP * dt;
+      camaraPos.z += (detrasZ - camaraPos.z) * CAM_LERP * dt;
+
+      camaraTarget.x += (AUTO.x - camaraTarget.x) * CAM_LERP * dt;
+      camaraTarget.y += (0.6 - camaraTarget.y) * CAM_LERP * dt;
+      camaraTarget.z += (AUTO.z - camaraTarget.z) * CAM_LERP * dt;
+
+      camara.position.copy(camaraPos);
+      camara.lookAt(camaraTarget);
+    }
+
+    /* =========================================================
+       LOOP DE ANIMACIÓN
+       ========================================================= */
+    let tAnterior = performance.now();
+
+    function animar() {
+      requestAnimationFrame(animar);
+
+      const ahora = performance.now();
+      const dt = Math.min((ahora - tAnterior) / 1000, 0.05); // cap 50 ms
+      tAnterior = ahora;
+
+      if (jugando && modelo) {
+        actualizarFisica(dt);
+
+        // Aplicar posición y rotación al modelo
+        modelo.position.x = AUTO.x;
+        modelo.position.z = AUTO.z;
+        // La rotación Y del modelo es el ángulo del auto MÁS el PI del Parte 1
+        modelo.rotation.y = AUTO.angulo + Math.PI;
+
+        actualizarCamara(dt);
+      }
+
+      renderer.render(escena, camara);
+    }
+
+    animar();
+  </script>
+</body>
+
+</html>
