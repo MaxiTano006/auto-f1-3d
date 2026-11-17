@@ -652,6 +652,8 @@
     let sensorActivo = false;
     let neutralGamma = 0;   // inclinación lateral neutral (°)
     let neutralBeta = 0;   // inclinación frontal neutral (°)
+    const GYRO_INVERTIR_VOLANTE = false;
+    const GYRO_INVERTIR_ACEL = false;
 
     // Umbral mínimo para evitar deriva
     const ZONA_MUERTA_GIRO = 3;   // grados
@@ -663,15 +665,51 @@
     // Se sobreescribe sobre los valores del teclado/táctil solo si el sensor está activo
     let gammaActual = 0;
     let betaActual = 0;
+    let pendienteCalibrar = false;
 
     function onOrientacion(e) {
-      gammaActual = e.gamma || 0;
-      betaActual = e.beta || 0;
+      const gamma = e.gamma || 0;
+      const beta = e.beta || 0;
+      let ang = (screen.orientation && typeof screen.orientation.angle === 'number')
+        ? screen.orientation.angle
+        : (typeof window.orientation === 'number' ? window.orientation : 0);
+
+      // Si el navegador reporta ang = 0 pero la pantalla está en horizontal,
+      // deducimos el lado horizontal real (90 o 270) sin asumir vertical:
+      if (ang === 0 && window.innerWidth > window.innerHeight) {
+        ang = gamma > 0 ? 270 : 90;
+      }
+
+      let volante = gamma;
+      let ace = beta;
+
+      if (ang === 90) {
+        volante = beta;
+        ace = -gamma;
+      } else if (ang === 270 || ang === -90) {
+        volante = -beta;
+        ace = gamma;
+      }
+
+      if (GYRO_INVERTIR_VOLANTE) volante = -volante;
+      if (GYRO_INVERTIR_ACEL) ace = -ace;
+
+      console.log({ ang, beta, gamma, volante, ace });
+
+      gammaActual = volante;
+      betaActual = ace;
+
+      if (pendienteCalibrar) {
+        neutralGamma = gammaActual;
+        neutralBeta = betaActual;
+        pendienteCalibrar = false;
+      }
     }
 
     function calibrarYActivar() {
       neutralGamma = gammaActual;
       neutralBeta = betaActual;
+      pendienteCalibrar = true;
       sensorActivo = true;
     }
 
