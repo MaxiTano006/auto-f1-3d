@@ -596,7 +596,7 @@
 
     /* -- Estado físico del auto ----------------------------- */
     const AUTO = {
-      x: 0, z: 0,          // posición en el mundo (m)
+      x: 0, y: 0, z: 0,    // posición en el mundo (m)
       angulo: 0,            // rotación en Y (rad)
       vel: 0,               // velocidad longitudinal (m/s)
     };
@@ -758,6 +758,7 @@
       pantallaHorizontal();
       // Pedir permiso del sensor DENTRO del gesto del toque
       await pedirPermisoSensor();
+      AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
       pantallaGarage.classList.add('oculto');
       controlesTactiles.style.display = '';
       jugando = true;
@@ -776,6 +777,19 @@
 
     const loader = new GLTFLoader();
 
+    const _raycasterSuelo = new THREE.Raycaster();
+    const _origenRayo = new THREE.Vector3();
+    const _dirAbajo = new THREE.Vector3(0, -1, 0);
+
+    function alturaSueloEn(x, z) {
+      if (!pista) return 0;
+      pista.updateMatrixWorld(true);
+      _origenRayo.set(x, 50, z);
+      _raycasterSuelo.set(_origenRayo, _dirAbajo);
+      const hits = _raycasterSuelo.intersectObject(pista, true);
+      return hits.length > 0 ? hits[0].point.y : 0;
+    }
+
     // Carga opcional del escenario desde ./pista.glb (si aún no existe, sigue con el piso actual)
     loader.load(
       './pista.glb',
@@ -791,6 +805,10 @@
           }
         });
         escena.add(pista);
+        if (modelo) {
+          AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
+          modelo.position.y = AUTO.y;
+        }
       },
       undefined,
       () => {
@@ -844,6 +862,10 @@
         modelo.add(modeloHijo);
 
         escena.add(modelo);
+        if (pista) {
+          AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
+          modelo.position.y = AUTO.y;
+        }
 
         barraProgreso.style.width = '100%';
         textoPct.textContent = '100%';
@@ -1015,6 +1037,7 @@
 
         // Aplicar posición y rotación al modelo
         modelo.position.x = AUTO.x;
+        modelo.position.y = AUTO.y;
         modelo.position.z = AUTO.z;
         // La rotación Y del modelo sigue el ángulo del auto (frente hacia -Z)
         modelo.rotation.y = AUTO.angulo;
