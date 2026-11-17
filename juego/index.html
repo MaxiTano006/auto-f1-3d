@@ -616,7 +616,7 @@
     const MEDIO_LARGO = 2.75;   // el auto mide 5.5 m
     const MEDIO_ANCHO = 1.1;    // aproximado
     const MARGEN_PARED = 0.35;  // colchón más allá del paragolpes (m)
-    const ALTURA_PARAGOLPES = 0.25; // baja: los neumáticos miden 0.34 m post-escala
+    const ALTURA_PARAGOLPES = 0.15; // mitad de la altura visible de neumáticos (~0.30 m sobre asfalto)
 
     // Spawn sobre la recta (coordenadas PRE-escala de pista.glb)
     const SPAWN_X = 50.5 * FACTOR_MUNDO;
@@ -1069,42 +1069,49 @@
         AUTO.angulo += giroFrame * dt;
       }
 
-      /* -- Movimiento ----------------------------------------- */
+      /* -- Movimiento (sub-pasos anti-tunneling) -------------- */
       const dirX = Math.sin(AUTO.angulo);  // frente del auto en X
       const dirZ = Math.cos(AUTO.angulo);  // frente del auto en Z
 
-      AUTO.x += -dirX * AUTO.vel * dt;    // -Z es el frente
-      AUTO.z += -dirZ * AUTO.vel * dt;
+      const desplazamiento = Math.abs(AUTO.vel) * dt;
+      const pasos = Math.max(1, Math.ceil(desplazamiento / 0.25));
+      const dtPaso = dt / pasos;
 
-      /* -- Rebote contra vallas y neumáticos (raycast horizontal) - */
-      if (_mallasObstaculos.length > 0) {
-        const signoVel = AUTO.vel >= 0 ? 1 : -1;
-        const avanX = -dirX * signoVel;   // hacia donde avanza el auto
-        const avanZ = -dirZ * signoVel;
-        const latX = -avanZ;              // lateral del avance
-        const latZ = avanX;
+      for (let i = 0; i < pasos; i++) {
+        AUTO.x += -dirX * AUTO.vel * dtPaso;
+        AUTO.z += -dirZ * AUTO.vel * dtPaso;
 
-        const rayos = [
-          { ox: avanX * MEDIO_LARGO, oz: avanZ * MEDIO_LARGO, dx: avanX, dz: avanZ, frente: true },
-          { ox: latX * MEDIO_ANCHO, oz: latZ * MEDIO_ANCHO, dx: latX, dz: latZ, frente: false },
-          { ox: -latX * MEDIO_ANCHO, oz: -latZ * MEDIO_ANCHO, dx: -latX, dz: -latZ, frente: false },
-        ];
+        /* -- Rebote contra vallas y neumáticos (raycast horizontal) - */
+        if (_mallasObstaculos.length > 0) {
+          const signoVel = AUTO.vel >= 0 ? 1 : -1;
+          const avanX = -dirX * signoVel;   // hacia donde avanza el auto
+          const avanZ = -dirZ * signoVel;
+          const latX = -avanZ;              // lateral del avance
+          const latZ = avanX;
 
-        for (const r of rayos) {
-          _origenPared.set(AUTO.x + r.ox, AUTO.y + ALTURA_PARAGOLPES, AUTO.z + r.oz);
-          _dirPared.set(r.dx, 0, r.dz);
-          _raycasterPared.set(_origenPared, _dirPared);
-          const hits = _raycasterPared.intersectObjects(_mallasObstaculos, false);
-          if (hits.length === 0 || !hits[0].face) continue;
+          const rayos = [
+            { dx: avanX, dz: avanZ, alcance: MEDIO_LARGO + MARGEN_PARED, frente: true },
+            { dx: latX,  dz: latZ,  alcance: MEDIO_ANCHO + MARGEN_PARED, frente: false },
+            { dx: -latX, dz: -latZ, alcance: MEDIO_ANCHO + MARGEN_PARED, frente: false },
+          ];
 
-          _normalPared.copy(hits[0].face.normal).transformDirection(hits[0].object.matrixWorld);
-          if (_normalPared.dot(_dirPared) > 0) _normalPared.negate();
+          for (const r of rayos) {
+            _origenPared.set(AUTO.x, AUTO.y + ALTURA_PARAGOLPES, AUTO.z);
+            _dirPared.set(r.dx, 0, r.dz);
+            _raycasterPared.set(_origenPared, _dirPared);
+            _raycasterPared.far = r.alcance;
+            const hits = _raycasterPared.intersectObjects(_mallasObstaculos, false);
+            if (hits.length === 0 || !hits[0].face) continue;
 
-          const penetracion = MARGEN_PARED - hits[0].distance;
-          if (penetracion > 0) {
-            AUTO.x += _normalPared.x * penetracion;
-            AUTO.z += _normalPared.z * penetracion;
-            if (r.frente) AUTO.vel *= -REBOTE;
+            _normalPared.copy(hits[0].face.normal).transformDirection(hits[0].object.matrixWorld);
+            if (_normalPared.dot(_dirPared) > 0) _normalPared.negate();
+
+            const penetracion = r.alcance - hits[0].distance;
+            if (penetracion > 0) {
+              AUTO.x += _normalPared.x * penetracion;
+              AUTO.z += _normalPared.z * penetracion;
+              if (r.frente) AUTO.vel *= -REBOTE;
+            }
           }
         }
       }
