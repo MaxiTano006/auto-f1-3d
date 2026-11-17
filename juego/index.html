@@ -19,7 +19,7 @@
     /* ---- Reset -------------------------------------------- */
     *,
     *::before,
-    *::after {
+    A *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -286,6 +286,52 @@
       opacity: 0.65;
     }
 
+    /* ---- Aviso: este juego se juega en horizontal ------- */
+    #avisoRotar {
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      background: #0d0d0d;
+      color: var(--texto);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    @media (orientation: portrait) {
+      #avisoRotar {
+        display: flex;
+      }
+    }
+
+    #avisoRotar .telefono {
+      font-size: 3.5rem;
+      animation: girarTelefono 2.2s ease-in-out infinite;
+    }
+
+    #avisoRotar p {
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    @keyframes girarTelefono {
+
+      0%,
+      25% {
+        transform: rotate(0deg);
+      }
+
+      60%,
+      100% {
+        transform: rotate(90deg);
+      }
+    }
+
     /* ---- Aviso sensor no disponible ----------------------- */
     #avisoSensor {
       position: fixed;
@@ -420,6 +466,11 @@
     </div>
 
     <button id="btnEmpezar" type="button">EMPEZAR</button>
+  </div>
+
+  <div id="avisoRotar">
+    <div class="telefono">📱</div>
+    <p>Girá el teléfono<br>Este juego se juega en horizontal</p>
   </div>
 
   <!-- Aviso sensor -->
@@ -647,6 +698,21 @@
       }
     }
 
+    // Horizontal sí o sí: fullscreen + lock de orientación donde el navegador lo permita
+    async function pantallaHorizontal() {
+      try {
+        const raiz = document.documentElement;
+        if (!document.fullscreenElement && raiz.requestFullscreen) {
+          await raiz.requestFullscreen();
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
+      } catch (e) {
+        /* iOS no permite el lock: el aviso #avisoRotar hace el trabajo */
+      }
+    }
+
     /* =========================================================
        GARAJE Y BOTÓN EMPEZAR
        ========================================================= */
@@ -686,6 +752,7 @@
 
     btnEmpezar.addEventListener('click', async () => {
       if (VEHICULOS[indiceVehiculo].bloqueado) return;
+      pantallaHorizontal();
       // Pedir permiso del sensor DENTRO del gesto del toque
       await pedirPermisoSensor();
       pantallaGarage.classList.add('oculto');
@@ -726,30 +793,40 @@
     );
 
     loader.load(
-      '../auto.glb',
+      './mclaren.glb',
 
       /* onLoad */
       (gltf) => {
         cargado = true;
         clearTimeout(timeoutCarga);
 
-        modelo = gltf.scene;
+        const modeloHijo = gltf.scene;
 
-        // Frente hacia -Z
-        modelo.rotation.y = Math.PI;
+        // Medir tamaño original y escalar uniformemente para que el largo sea 5.5 m
+        const cajaOrig = new THREE.Box3().setFromObject(modeloHijo);
+        const tamOrig = cajaOrig.getSize(new THREE.Vector3());
+        const largoOrig = Math.max(tamOrig.x, tamOrig.z) || 1;
+        const factorEscala = 5.5 / largoOrig;
+        modeloHijo.scale.setScalar(factorEscala);
+        console.log('mclaren.glb — tamaño original:', tamOrig, 'factor de escala:', factorEscala);
 
-        // Centrar en XZ, apoyar en el piso
-        const caja = new THREE.Box3().setFromObject(modelo);
-        modelo.position.x -= (caja.max.x + caja.min.x) / 2;
-        modelo.position.z -= (caja.max.z + caja.min.z) / 2;
-        modelo.position.y -= caja.min.y;
+        // Centrar en XZ y apoyar en el piso sobre el modelo hijo (ya escalado)
+        const caja = new THREE.Box3().setFromObject(modeloHijo);
+        modeloHijo.position.x -= (caja.max.x + caja.min.x) / 2;
+        modeloHijo.position.z -= (caja.max.z + caja.min.z) / 2;
+        modeloHijo.position.y -= caja.min.y;
 
-        modelo.traverse((nodo) => {
+        modeloHijo.traverse((nodo) => {
           if (nodo.isMesh) {
             nodo.castShadow = true;
             nodo.receiveShadow = true;
           }
         });
+
+        // Contenedor padre que recibe posición y giro de AUTO durante el juego
+        modelo = new THREE.Group();
+        modelo.rotation.y = 0;
+        modelo.add(modeloHijo);
 
         escena.add(modelo);
 
@@ -919,8 +996,8 @@
         // Aplicar posición y rotación al modelo
         modelo.position.x = AUTO.x;
         modelo.position.z = AUTO.z;
-        // La rotación Y del modelo es el ángulo del auto MÁS el PI del Parte 1
-        modelo.rotation.y = AUTO.angulo + Math.PI;
+        // La rotación Y del modelo sigue el ángulo del auto (frente hacia -Z)
+        modelo.rotation.y = AUTO.angulo;
 
         actualizarCamara(dt);
       }
