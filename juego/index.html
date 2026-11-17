@@ -544,28 +544,31 @@
     /* =========================================================
        LUCES
        ========================================================= */
-    const luzHemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.75);
+    const luzHemi = new THREE.HemisphereLight(0xffffff, 0x222222, 1.5);
     escena.add(luzHemi);
 
-    const luzDir = new THREE.DirectionalLight(0xffffff, 1.1);
+    const luzDir = new THREE.DirectionalLight(0xffffff, 3);
     luzDir.position.set(10, 20, 10);
     luzDir.castShadow = true;
     luzDir.shadow.mapSize.width = 1024;
     luzDir.shadow.mapSize.height = 1024;
     luzDir.shadow.camera.near = 1;
     luzDir.shadow.camera.far = 80;
-    luzDir.shadow.camera.left = -20;
-    luzDir.shadow.camera.right = 20;
-    luzDir.shadow.camera.top = 20;
-    luzDir.shadow.camera.bottom = -20;
+    luzDir.shadow.camera.left = -60;
+    luzDir.shadow.camera.right = 60;
+    luzDir.shadow.camera.top = 60;
+    luzDir.shadow.camera.bottom = -60;
     luzDir.shadow.bias = -0.001;
     escena.add(luzDir);
+    escena.add(luzDir.target);
 
     /* =========================================================
-       PISO 200 × 200 m
+       PISO 200 × 200 m (escalado por FACTOR_MUNDO)
        ========================================================= */
+    const FACTOR_MUNDO = 2;
+
     const piso = new THREE.Mesh(
-      new THREE.PlaneGeometry(200, 200),
+      new THREE.PlaneGeometry(200 * FACTOR_MUNDO, 200 * FACTOR_MUNDO),
       new THREE.MeshLambertMaterial({ color: 0x141414 })
     );
     piso.rotation.x = -Math.PI / 2;
@@ -605,7 +608,7 @@
     const FRENO_INPUT = 28;      // m/s² frenada con input
     const FRICCION = 8;      // m/s² desaceleración pasiva
     const GIRO_MAX = 1.8;    // rad/s giro máximo
-    const LIMITE_MUNDO = 90;      // m desde el centro (zona segura)
+    const LIMITE_MUNDO = 90 * FACTOR_MUNDO; // m desde el centro (zona segura)
     const REBOTE = 0.3;    // factor de rebote
 
     /* =========================================================
@@ -778,6 +781,9 @@
       './pista.glb',
       (gltf) => {
         pista = gltf.scene;
+        pista.scale.setScalar(FACTOR_MUNDO);
+        const cajaPista = new THREE.Box3().setFromObject(pista);
+        pista.position.y -= cajaPista.min.y;
         pista.traverse((nodo) => {
           if (nodo.isMesh) {
             nodo.castShadow = true;
@@ -802,6 +808,9 @@
 
         const modeloHijo = gltf.scene;
 
+        // Orientación base del modelo antes de medir Box3 y escalar
+        modeloHijo.rotation.y = OFFSET_FRENTE;
+
         // Medir tamaño original y escalar uniformemente para que el largo sea 5.5 m
         const cajaOrig = new THREE.Box3().setFromObject(modeloHijo);
         const tamOrig = cajaOrig.getSize(new THREE.Vector3());
@@ -820,6 +829,12 @@
           if (nodo.isMesh) {
             nodo.castShadow = true;
             nodo.receiveShadow = true;
+            const mats = Array.isArray(nodo.material) ? nodo.material : [nodo.material];
+            mats.forEach((m) => {
+              if (m && typeof m.metalness === 'number' && m.metalness > 0.5) {
+                m.metalness = 0.3;
+              }
+            });
           }
         });
 
@@ -955,6 +970,7 @@
     /* =========================================================
        CÁMARA DE PERSECUCIÓN
        ========================================================= */
+    const OFFSET_FRENTE = Math.PI; // probar: 0, PI/2, -PI/2, PI
     const CAM_DISTANCIA = 14;  // m detrás del auto
     const CAM_ALTURA = 6;  // m sobre el auto
     const CAM_LERP = 6;  // suavizado (factor dt)
@@ -976,6 +992,10 @@
 
       camara.position.copy(camaraPos);
       camara.lookAt(camaraTarget);
+
+      // La luz direccional sigue al auto para mantener sombras en todo el mapa
+      luzDir.position.set(AUTO.x + 10, 20, AUTO.z + 10);
+      luzDir.target.position.set(AUTO.x, 0, AUTO.z);
     }
 
     /* =========================================================
