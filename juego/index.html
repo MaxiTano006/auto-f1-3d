@@ -652,7 +652,7 @@
     let sensorActivo = false;
     let neutralGamma = 0;   // inclinación lateral neutral (°)
     let neutralBeta = 0;   // inclinación frontal neutral (°)
-    const GYRO_INVERTIR_VOLANTE = false;
+    const GYRO_INVERTIR_VOLANTE = true;
     const GYRO_INVERTIR_ACEL = false;
 
     // Umbral mínimo para evitar deriva
@@ -666,6 +666,9 @@
     let gammaActual = 0;
     let betaActual = 0;
     let pendienteCalibrar = false;
+    let _tInicioCalibrar = 0;
+    let _prevVolante = null;
+    let _prevAce = null;
 
     function onOrientacion(e) {
       const gamma = e.gamma || 0;
@@ -685,10 +688,11 @@
 
       if (ang === 90) {
         volante = beta;
-        ace = -gamma;
+        // Evitar salto de signo de gamma al pasar de 90° inclinando hacia atrás
+        ace = (gamma > 0 && betaActual > 60) ? 90 : -gamma;
       } else if (ang === 270 || ang === -90) {
         volante = -beta;
-        ace = gamma;
+        ace = (gamma < 0 && betaActual > 60) ? 90 : gamma;
       }
 
       if (GYRO_INVERTIR_VOLANTE) volante = -volante;
@@ -700,15 +704,24 @@
       betaActual = ace;
 
       if (pendienteCalibrar) {
-        neutralGamma = gammaActual;
-        neutralBeta = betaActual;
-        pendienteCalibrar = false;
+        const quieto = _prevVolante !== null &&
+          Math.abs(volante - _prevVolante) < 1.2 &&
+          Math.abs(ace - _prevAce) < 1.2;
+        const expiro = (performance.now() - _tInicioCalibrar) > 2000;
+        if (quieto || expiro) {
+          neutralGamma = gammaActual;
+          neutralBeta = betaActual;
+          pendienteCalibrar = false;
+        }
       }
+      _prevVolante = volante;
+      _prevAce = ace;
     }
 
     function calibrarYActivar() {
       neutralGamma = gammaActual;
       neutralBeta = betaActual;
+      _tInicioCalibrar = performance.now();
       pendienteCalibrar = true;
       sensorActivo = true;
     }
@@ -937,7 +950,10 @@
     const _vecDir = new THREE.Vector3();
 
     function actualizarFisica(dt) {
-      /* -- Input del giroscopio (superpone al teclado/táctil) - */
+      /* -- Input del giroscopio (se combina con teclado/táctil) */
+      let sensorAce = false;
+      let sensorFre = false;
+
       if (sensorActivo) {
         const dGamma = gammaActual - neutralGamma;
         const dBeta = betaActual - neutralBeta;
@@ -945,34 +961,28 @@
         // Giro lateral
         if (Math.abs(dGamma) > ZONA_MUERTA_GIRO) {
           const frac = Math.min(1, (Math.abs(dGamma) - ZONA_MUERTA_GIRO) * SENSIB_GIRO);
-          input.izq = dGamma < 0 ? frac > 0.1 : false;
-          input.der = dGamma > 0 ? frac > 0.1 : false;
           // Usar valor analógico directamente para giro suave:
           _giroSensor = (dGamma < 0 ? -1 : 1) * frac;
         } else {
-          input.izq = false;
-          input.der = false;
           _giroSensor = 0;
         }
 
         // Aceleración por inclinación frontal
         if (dBeta < -ZONA_MUERTA_ACEL) {
           // inclinado hacia adelante → acelerar
-          input.ace = true;
-          input.fre = false;
+          sensorAce = true;
         } else if (dBeta > ZONA_MUERTA_ACEL) {
-          input.ace = false;
-          input.fre = true;
-        } else {
-          input.ace = false;
-          input.fre = false;
+          sensorFre = true;
         }
       }
 
       /* -- Aceleración / freno -------------------------------- */
-      if (input.ace) {
+      const usarAce = input.ace || sensorAce;
+      const usarFre = input.fre || sensorFre;
+
+      if (usarAce) {
         AUTO.vel += ACEL * dt;
-      } else if (input.fre) {
+      } else if (usarFre) {
         if (AUTO.vel > 0.1) {
           AUTO.vel -= FRENO_INPUT * dt;
         } else {
@@ -997,11 +1007,12 @@
       if (velAbs > 0.3) {
         let giroFrame = 0;
 
-        if (sensorActivo && _giroSensor !== 0) {
+        if (input.izq) {
+          giroFrame = GIRO_MAX * Math.abs(velFrac);
+        } else if (input.der) {
+          giroFrame = -GIRO_MAX * Math.abs(velFrac);
+        } else if (sensorActivo && _giroSensor !== 0) {
           giroFrame = _giroSensor * GIRO_MAX * Math.abs(velFrac);
-        } else {
-          if (input.izq) giroFrame = GIRO_MAX * Math.abs(velFrac);
-          if (input.der) giroFrame = -GIRO_MAX * Math.abs(velFrac);
         }
 
         // Invertir dirección del giro en reversa
