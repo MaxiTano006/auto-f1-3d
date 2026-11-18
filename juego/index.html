@@ -1581,7 +1581,7 @@
 
     // Spawn sobre la recta (coordenadas PRE-escala de pista.glb)
     const SPAWN_X = 50.5 * FACTOR_MUNDO;
-    const SPAWN_Z = 36.6 * FACTOR_MUNDO;
+    const SPAWN_Z = -31.0 * FACTOR_MUNDO;
     const SPAWN_ANG = Math.PI / 2; // mirando a lo largo de la recta (hacia -X)
 
     /* =========================================================
@@ -2020,11 +2020,11 @@
     const CLAVE_RECORD = 'vertice_record';
 
     const CHECKPOINTS = [
-      { x: -36.9, z: 21.0 },
-      { x: 152.4, z: -93.0 },
-      { x: 342.6, z: 21.0 },
+      { x: -12.6 * FACTOR_MUNDO, z: 2.78 * FACTOR_MUNDO },
+      { x: 50.5 * FACTOR_MUNDO,  z: 36.6 * FACTOR_MUNDO },
+      { x: 114.5 * FACTOR_MUNDO, z: 2.78 * FACTOR_MUNDO },
     ];
-    const RADIO_CP_SQ = 18 * 18;
+    const RADIO_CP_SQ = (7 * FACTOR_MUNDO) * (7 * FACTOR_MUNDO);
 
     function formatearTiempo(seg) {
       const min = Math.floor(seg / 60);
@@ -2444,6 +2444,46 @@
       escena.add(instColinas);
     }
 
+    function crearLineaMeta() {
+      const cols = 2;
+      const filas = 12;
+      const tamCelda = 16;
+      const c = document.createElement('canvas');
+      c.width = cols * tamCelda;
+      c.height = filas * tamCelda;
+      const ctx = c.getContext('2d');
+
+      for (let f = 0; f < filas; f++) {
+        for (let col = 0; col < cols; col++) {
+          ctx.fillStyle = (f + col) % 2 === 0 ? '#ffffff' : '#111111';
+          ctx.fillRect(col * tamCelda, f * tamCelda, tamCelda, tamCelda);
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.magFilter = THREE.NearestFilter;
+
+      // 3 m de profundidad (eje X) por 10 m de ancho (eje Z)
+      const geo = new THREE.PlaneGeometry(3, 10);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: false,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
+      });
+
+      const ySueloMeta = alturaSueloEn(SPAWN_X, SPAWN_Z);
+      const yMeta = (Number.isFinite(ySueloMeta) ? ySueloMeta : 0) + 0.05;
+
+      const mallaMeta = new THREE.Mesh(geo, mat);
+      mallaMeta.rotation.x = -Math.PI / 2;
+      mallaMeta.position.set(SPAWN_X, yMeta, SPAWN_Z);
+      escena.add(mallaMeta);
+    }
+
     function alturaSueloEn(x, z) {
       if (!pista) {
         _mallaSueloActual = null;
@@ -2525,6 +2565,7 @@
           const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
           crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
           crearColinasInstanciadas(mallaTierraExt);
+          crearLineaMeta();
         } catch (e) {
           console.warn(e);
         }
@@ -2799,9 +2840,9 @@
           }
         } else if (
           siguienteCheckpoint === 3 &&
-          prevX >= 151.5 &&
-          AUTO.x < 151.5 &&
-          Math.abs(AUTO.z - 109.8) < 12
+          prevX >= SPAWN_X &&
+          AUTO.x < SPAWN_X &&
+          Math.abs(AUTO.z - SPAWN_Z) < 12
         ) {
           metaCruzada = true;
           const tiempoVuelta = _tiempoCarrera - _tiempoInicioVuelta;
@@ -2820,9 +2861,9 @@
           !metaCruzada &&
           _tiempoCarrera > 5 &&
           siguienteCheckpoint < 3 &&
-          prevX >= 151.5 &&
-          AUTO.x < 151.5 &&
-          Math.abs(AUTO.z - 109.8) < 12
+          prevX >= SPAWN_X &&
+          AUTO.x < SPAWN_X &&
+          Math.abs(AUTO.z - SPAWN_Z) < 12
         ) {
           siguienteCheckpoint = 0;
           mostrarAvisoCheckpointPerdido();
