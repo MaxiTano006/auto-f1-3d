@@ -303,7 +303,7 @@
 
     .garage-stat {
       display: grid;
-      grid-template-columns: 120px 1fr 28px;
+      grid-template-columns: 120px 110px 34px;
       align-items: center;
       gap: 0.6rem;
       font-size: 0.7rem;
@@ -316,17 +316,24 @@
     }
 
     .garage-stat-pista {
-      height: 6px;
-      background: var(--bg);
-      border: 1px solid var(--linea);
-      overflow: hidden;
+      display: flex;
+      gap: 3px;
+      width: 100%;
+      height: 8px;
+      background: none;
+      border: none;
+      overflow: visible;
     }
 
-    .garage-stat-barra {
-      height: 100%;
-      width: 0%;
+    .garage-stat-pista i {
+      flex: 1 1 0;
+      background: var(--linea);
+      border-radius: 1px;
+      transition: background 0.2s ease;
+    }
+
+    .garage-stat-pista i.on {
       background: var(--verde);
-      transition: width 0.2s ease;
     }
 
     .garage-stat-valor {
@@ -1240,6 +1247,50 @@
       letter-spacing: 0.03em;
       word-break: break-all;
     }
+
+    /* ---- Pantalla de Ranking (#pantallaRanking) ----------- */
+    .ranking-lista {
+      list-style: none;
+      padding: 0;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      width: 100%;
+      max-width: 360px;
+      max-height: 44vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ranking-lista li {
+      display: grid;
+      grid-template-columns: 2rem 1fr auto;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.42rem 0.65rem;
+      background: var(--bg);
+      border: 1px solid var(--linea);
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ranking-lista li.ranking-propio {
+      color: var(--verde);
+      border-left: 2px solid var(--verde);
+      font-weight: 700;
+    }
+
+    .ranking-aviso {
+      font-size: 0.74rem;
+      color: var(--suave);
+      text-align: center;
+    }
+
+    .ranking-aviso.oculto {
+      display: none;
+    }
   </style>
 </head>
 
@@ -1276,6 +1327,7 @@
         <button type="button" class="btn-menu" id="btnMenuAyuda">AYUDA</button>
         <button type="button" class="btn-menu" id="btnInstrucciones">INSTRUCCIONES</button>
         <button type="button" class="btn-menu" id="btnMenuCreditos">CRÉDITOS</button>
+        <button type="button" class="btn-menu" id="btnRanking">RANKING</button>
       </div>
     </div>
   </div>
@@ -1472,24 +1524,18 @@
       <div class="garage-stats" aria-label="Prestaciones del vehículo">
         <div class="garage-stat">
           <span class="garage-stat-etiqueta">Velocidad</span>
-          <div class="garage-stat-pista" aria-hidden="true">
-            <div class="garage-stat-barra" id="statBarraVel"></div>
-          </div>
-          <span class="garage-stat-valor" id="statValorVel">9</span>
+          <div class="garage-stat-pista" id="statPistaVel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="garage-stat-valor" id="statValorVel">5/5</span>
         </div>
         <div class="garage-stat">
           <span class="garage-stat-etiqueta">Aceleración</span>
-          <div class="garage-stat-pista" aria-hidden="true">
-            <div class="garage-stat-barra" id="statBarraAce"></div>
-          </div>
-          <span class="garage-stat-valor" id="statValorAce">10</span>
+          <div class="garage-stat-pista" id="statPistaAce" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="garage-stat-valor" id="statValorAce">5/5</span>
         </div>
         <div class="garage-stat">
           <span class="garage-stat-etiqueta">Maniobrabilidad</span>
-          <div class="garage-stat-pista" aria-hidden="true">
-            <div class="garage-stat-barra" id="statBarraMan"></div>
-          </div>
-          <span class="garage-stat-valor" id="statValorMan">9</span>
+          <div class="garage-stat-pista" id="statPistaMan" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="garage-stat-valor" id="statValorMan">5/5</span>
         </div>
       </div>
 
@@ -1497,6 +1543,19 @@
         <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
         <button id="btnEmpezar" type="button">EMPEZAR</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Pantalla Ranking -->
+  <div id="pantallaRanking" class="pantalla-menu oculto" role="dialog" aria-label="Ranking">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo">Mejores tiempos</span>
+        <h2 class="menu-titulo">RANKING</h2>
+      </div>
+      <ol id="listaRanking" class="ranking-lista"></ol>
+      <p id="rankingAvisoSinRecord" class="ranking-aviso oculto">Corré una carrera para entrar al ranking</p>
+      <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
     </div>
   </div>
 
@@ -1557,15 +1616,19 @@
     const btnInstrucciones = document.getElementById('btnInstrucciones');
     const btnVolverInstrucciones = document.getElementById('btnVolverInstrucciones');
     const btnMenuCreditos = document.getElementById('btnMenuCreditos');
+    const btnRanking = document.getElementById('btnRanking');
+    const pantallaRanking = document.getElementById('pantallaRanking');
+    const listaRanking = document.getElementById('listaRanking');
+    const rankingAvisoSinRecord = document.getElementById('rankingAvisoSinRecord');
     const chkInvertirVolante = document.getElementById('chkInvertirVolante');
     const chkInvertirAcel = document.getElementById('chkInvertirAcel');
     const btnVehiculoAnt = document.getElementById('btnVehiculoAnt');
     const btnVehiculoSig = document.getElementById('btnVehiculoSig');
     const nombreVehiculo = document.getElementById('nombreVehiculo');
     const desbloqueoVehiculo = document.getElementById('desbloqueoVehiculo');
-    const statBarraVel = document.getElementById('statBarraVel');
-    const statBarraAce = document.getElementById('statBarraAce');
-    const statBarraMan = document.getElementById('statBarraMan');
+    const statPistaVel = document.getElementById('statPistaVel');
+    const statPistaAce = document.getElementById('statPistaAce');
+    const statPistaMan = document.getElementById('statPistaMan');
     const statValorVel = document.getElementById('statValorVel');
     const statValorAce = document.getElementById('statValorAce');
     const statValorMan = document.getElementById('statValorMan');
@@ -2091,7 +2154,7 @@
 
     crearGarage();
 
-    const _pantallasUI = [menuOverlay, pantallaConfig, pantallaAyuda, pantallaInstrucciones, pantallaCreditos, pantallaGarage, pantallaFinal];
+    const _pantallasUI = [menuOverlay, pantallaConfig, pantallaAyuda, pantallaInstrucciones, pantallaCreditos, pantallaGarage, pantallaFinal, pantallaRanking];
 
     function mostrarPantalla(id) {
       for (const p of _pantallasUI) {
@@ -2115,6 +2178,10 @@
     btnInstrucciones.addEventListener('click', () => mostrarPantalla('pantallaInstrucciones'));
     btnVolverInstrucciones.addEventListener('click', () => mostrarPantalla('menuOverlay'));
     btnMenuCreditos.addEventListener('click', () => mostrarPantalla('pantallaCreditos'));
+    btnRanking.addEventListener('click', () => {
+      renderizarRanking();
+      mostrarPantalla('pantallaRanking');
+    });
     document.querySelectorAll('[data-volver-menu]').forEach((btn) => {
       btn.addEventListener('click', () => mostrarPantalla('menuOverlay'));
     });
@@ -2293,6 +2360,81 @@
       return { mejorTotal: null, mejorVuelta: null };
     }
 
+    /* -- Ranking con bots persistidos ----------------------- */
+    const CLAVE_RANKING_BOTS = 'vertice_ranking_bots';
+    const BOTS_RANKING = [
+      'Tano_Racing',
+      'Sofi_GP',
+      'ElPibeTurbo',
+      'Nacho_V6',
+      'CamiDrift',
+      'Fede_Apex',
+      'Lu_Tifosi',
+      'Rulo_Boxes',
+    ];
+
+    function generarBots() {
+      try {
+        const guardado = JSON.parse(localStorage.getItem(CLAVE_RANKING_BOTS) || 'null');
+        if (
+          Array.isArray(guardado) &&
+          guardado.length === BOTS_RANKING.length &&
+          guardado.every((b) => b && typeof b.nombre === 'string' && Number.isFinite(b.tiempo))
+        ) {
+          return guardado;
+        }
+      } catch {}
+
+      const generados = BOTS_RANKING.map((nombre) => ({
+        nombre,
+        tiempo: 142000 + Math.floor(Math.random() * (224000 - 142000 + 1)),
+      }));
+
+      try {
+        localStorage.setItem(CLAVE_RANKING_BOTS, JSON.stringify(generados));
+      } catch {}
+
+      return generados;
+    }
+
+    function renderizarRanking() {
+      const entradas = generarBots().map((b) => ({
+        nombre: b.nombre,
+        tiempo: b.tiempo,
+        propio: false,
+      }));
+
+      const rec = leerRecord();
+      const tieneRecord = rec.mejorTotal !== null && Number.isFinite(rec.mejorTotal) && rec.mejorTotal > 0;
+      if (tieneRecord) {
+        entradas.push({
+          nombre: 'VOS',
+          tiempo: Math.round(rec.mejorTotal * 1000),
+          propio: true,
+        });
+      }
+
+      entradas.sort((a, b) => a.tiempo - b.tiempo);
+
+      listaRanking.innerHTML = '';
+      entradas.forEach((item, idx) => {
+        const li = document.createElement('li');
+        if (item.propio) li.classList.add('ranking-propio');
+
+        const spanPos = document.createElement('span');
+        spanPos.textContent = `${idx + 1}.`;
+        const spanNom = document.createElement('span');
+        spanNom.textContent = item.nombre;
+        const spanTiempo = document.createElement('span');
+        spanTiempo.textContent = formatearTiempo(item.tiempo / 1000);
+
+        li.append(spanPos, spanNom, spanTiempo);
+        listaRanking.appendChild(li);
+      });
+
+      rankingAvisoSinRecord.classList.toggle('oculto', tieneRecord);
+    }
+
     function finalizarCarrera() {
       carreraTerminada = true;
       hudTiempo.textContent = formatearTiempo(_tiempoCarrera);
@@ -2463,6 +2605,14 @@
       } catch {}
     }
 
+    function pintarNivel(pista, valor, bloqueado) {
+      const nivel = bloqueado ? 0 : Math.max(1, Math.min(5, Math.round(valor / 2)));
+      for (let i = 0; i < pista.children.length; i++) {
+        pista.children[i].classList.toggle('on', i < nivel);
+      }
+      return nivel;
+    }
+
     function actualizarGarage() {
       const v = VEHICULOS[indiceVehiculo];
       nombreVehiculo.textContent = v.nombre;
@@ -2475,12 +2625,12 @@
         desbloqueoVehiculo.classList.add('oculto');
       }
 
-      statBarraVel.style.width = v.bloqueado ? '0%' : (v.stats.vel * 10) + '%';
-      statBarraAce.style.width = v.bloqueado ? '0%' : (v.stats.ace * 10) + '%';
-      statBarraMan.style.width = v.bloqueado ? '0%' : (v.stats.man * 10) + '%';
-      statValorVel.textContent = v.bloqueado ? '???' : String(v.stats.vel);
-      statValorAce.textContent = v.bloqueado ? '???' : String(v.stats.ace);
-      statValorMan.textContent = v.bloqueado ? '???' : String(v.stats.man);
+      const nivVel = pintarNivel(statPistaVel, v.stats.vel, v.bloqueado);
+      const nivAce = pintarNivel(statPistaAce, v.stats.ace, v.bloqueado);
+      const nivMan = pintarNivel(statPistaMan, v.stats.man, v.bloqueado);
+      statValorVel.textContent = v.bloqueado ? '???' : nivVel + '/5';
+      statValorAce.textContent = v.bloqueado ? '???' : nivAce + '/5';
+      statValorMan.textContent = v.bloqueado ? '???' : nivMan + '/5';
 
       if (v.bloqueado) {
         if (modelo) modelo.visible = false;
