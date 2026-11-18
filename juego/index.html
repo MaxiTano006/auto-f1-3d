@@ -1400,7 +1400,7 @@
 
         <div class="inst-qr-bloque">
           <h3 class="inst-bloque-titulo">Escaneá para jugar</h3>
-          <img src="qr-juego.png" alt="Código QR para abrir el juego" width="200" height="200" class="inst-qr-img" />
+          <img src="./qr-juego.png" alt="Código QR para abrir el juego" width="200" height="200" class="inst-qr-img" />
           <span class="inst-qr-url">https://auto-f1-3d.vercel.app/juego/</span>
         </div>
       </div>
@@ -2361,7 +2361,7 @@
     }
 
     /* -- Ranking con bots persistidos ----------------------- */
-    const CLAVE_RANKING_BOTS = 'vertice_ranking_bots';
+    const CLAVE_RANKING_BOTS = 'vertice_ranking_bots_v2';
     const BOTS_RANKING = [
       'Tano_Racing',
       'Sofi_GP',
@@ -2387,7 +2387,7 @@
 
       const generados = BOTS_RANKING.map((nombre) => ({
         nombre,
-        tiempo: 142000 + Math.floor(Math.random() * (224000 - 142000 + 1)),
+        tiempo: 94000 + Math.floor(Math.random() * (152000 - 94000 + 1)),
       }));
 
       try {
