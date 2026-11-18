@@ -1040,7 +1040,7 @@
     const _texCielo = new THREE.CanvasTexture(_canvasCielo);
     _texCielo.colorSpace = THREE.SRGBColorSpace;
     escena.background = _texCielo;
-    escena.fog = new THREE.Fog(0xcfe4f7, 250, 1400);
+    escena.fog = new THREE.Fog(0xcfe4f7, 250, 2200);
 
     /* =========================================================
        CÁMARA
@@ -1749,6 +1749,71 @@
       console.log('arboles:', colocados);
     }
 
+    function crearColinasInstanciadas(mallaTierraExt) {
+      const CANT_COLINAS = 64;
+      const RADIO_MIN = 1350;
+      const RADIO_MAX = 1700;
+
+      const yBase = mallaTierraExt
+        ? new THREE.Box3().setFromObject(mallaTierraExt).max.y - 2
+        : -2;
+
+      // PRNG determinista con semilla fija
+      let semilla = 20261119;
+      function rand() {
+        semilla = (semilla * 1664525 + 1013904223) >>> 0;
+        return semilla / 4294967296;
+      }
+
+      const geoColina = new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55);
+      const matColina = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+      const instColinas = new THREE.InstancedMesh(geoColina, matColina, CANT_COLINAS);
+      instColinas.castShadow = false;
+      instColinas.receiveShadow = false;
+      instColinas.frustumCulled = false;
+
+      const dummy = new THREE.Object3D();
+      const coloresColina = [
+        new THREE.Color(0x6e8c78),
+        new THREE.Color(0x7b9886),
+        new THREE.Color(0x88a394),
+      ];
+
+      for (let i = 0; i < CANT_COLINAS; i++) {
+        const ang = (i / CANT_COLINAS) * Math.PI * 2 + (rand() - 0.5) * 0.08;
+        const dist = RADIO_MIN + rand() * (RADIO_MAX - RADIO_MIN);
+        const radioX = 80 + rand() * 60; // 80..140 m
+        const radioZ = radioX * (0.85 + rand() * 0.3); // máx ~145 m (< 150 m)
+        const radioMax = Math.max(radioX, radioZ);
+        const altoY = 30 + rand() * 40;
+
+        let x = Math.cos(ang) * dist;
+        let z = Math.sin(ang) * dist;
+
+        // Asegurar que ni en las diagonales del cuadrado ±1200 entre el borde de la colina
+        const maxCoord = Math.max(Math.abs(x), Math.abs(z));
+        const minPermitido = LIMITE_MUNDO + radioMax + 5;
+        if (maxCoord < minPermitido) {
+          const factor = minPermitido / (maxCoord || 1);
+          x *= factor;
+          z *= factor;
+        }
+
+        dummy.position.set(x, yBase, z);
+        dummy.rotation.set(0, rand() * Math.PI * 2, 0);
+        dummy.scale.set(radioX, altoY, radioZ);
+        dummy.updateMatrix();
+
+        instColinas.setMatrixAt(i, dummy.matrix);
+        instColinas.setColorAt(i, coloresColina[Math.floor(rand() * coloresColina.length)]);
+      }
+
+      instColinas.instanceMatrix.needsUpdate = true;
+      if (instColinas.instanceColor) instColinas.instanceColor.needsUpdate = true;
+      escena.add(instColinas);
+    }
+
     function alturaSueloEn(x, z) {
       if (!pista) return 0;
       _origenRayo.set(x, 50, z);
@@ -1819,6 +1884,7 @@
         const mallaAsfalto = _mallasSuelo.find((m) => m.name === 'Mapa');
         const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
         crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
+        crearColinasInstanciadas(mallaTierraExt);
 
         const margenCaja = Math.max(4, (MEDIO_LARGO + MARGEN_PARED) + VEL_MAX * 0.05);
         for (const obs of _mallasObstaculos) {
