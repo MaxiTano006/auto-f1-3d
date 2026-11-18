@@ -286,6 +286,145 @@
       opacity: 0.65;
     }
 
+    /* ---- Menú Principal y Subpantallas -------------------- */
+    .pantalla-menu {
+      position: fixed;
+      inset: 0;
+      z-index: 18;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(13, 13, 13, 0.72);
+    }
+
+    .pantalla-menu.oculto {
+      display: none;
+    }
+
+    .menu-caja {
+      background: rgba(20, 20, 20, 0.94);
+      border: 1px solid var(--linea);
+      padding: 1.25rem 1.75rem;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .menu-encabezado {
+      text-align: center;
+      border-bottom: 1px solid var(--linea);
+      padding-bottom: 0.65rem;
+    }
+
+    .menu-subtitulo {
+      display: block;
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--acento);
+      margin-bottom: 0.2rem;
+    }
+
+    .menu-titulo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .menu-botones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+    }
+
+    .btn-menu {
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--linea);
+      background: var(--bg);
+      color: var(--texto);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn-menu.primario {
+      grid-column: 1 / -1;
+      border-color: var(--acento);
+      background: var(--acento);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .btn-menu:hover:not(:disabled) {
+      border-color: var(--acento);
+      background: #b0040e;
+      color: #fff;
+    }
+
+    .btn-menu:disabled {
+      color: var(--suave);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .badge-prox {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 0.15rem 0.4rem;
+      border: 1px solid var(--acento);
+      color: var(--texto);
+      background: rgba(227, 6, 19, 0.2);
+    }
+
+    .menu-cuerpo {
+      font-size: 0.8rem;
+      color: var(--suave);
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .menu-cuerpo strong {
+      color: var(--texto);
+    }
+
+    .config-fila {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--linea);
+      background: var(--bg);
+      color: var(--texto);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .config-fila input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--acento);
+      cursor: pointer;
+    }
+
     /* ---- Aviso: este juego se juega en horizontal ------- */
     #avisoRotar {
       position: fixed;
@@ -429,6 +568,80 @@
     <button type="button" class="btn-reintentar" onclick="location.reload()">Reintentar</button>
   </div>
 
+  <!-- Menú Principal -->
+  <div id="menuOverlay" class="pantalla-menu oculto" role="dialog" aria-label="Menú principal">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo">Simulador 3D</span>
+        <h1 class="menu-titulo">Auto F1</h1>
+      </div>
+      <div class="menu-botones">
+        <button type="button" class="btn-menu primario" id="btnMenuPrueba">PRUEBA</button>
+        <button type="button" class="btn-menu" id="btnMenuCarrera" disabled>
+          CARRERA <span class="badge-prox">Próximamente</span>
+        </button>
+        <button type="button" class="btn-menu" id="btnMenuConfig">CONFIGURACIÓN</button>
+        <button type="button" class="btn-menu" id="btnMenuAyuda">AYUDA</button>
+        <button type="button" class="btn-menu" id="btnMenuCreditos">CRÉDITOS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla Configuración -->
+  <div id="pantallaConfig" class="pantalla-menu oculto" role="dialog" aria-label="Configuración">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo">Opciones</span>
+        <h2 class="menu-titulo">Configuración</h2>
+      </div>
+      <div class="menu-cuerpo">
+        <label class="config-fila" for="chkInvertirVolante">
+          <span>Invertir giro del volante (giroscopio)</span>
+          <input type="checkbox" id="chkInvertirVolante" />
+        </label>
+        <label class="config-fila" for="chkInvertirAcel">
+          <span>Invertir acelerador / freno (giroscopio)</span>
+          <input type="checkbox" id="chkInvertirAcel" />
+        </label>
+      </div>
+      <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
+    </div>
+  </div>
+
+  <!-- Pantalla Ayuda -->
+  <div id="pantallaAyuda" class="pantalla-menu oculto" role="dialog" aria-label="Ayuda">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo">Controles</span>
+        <h2 class="menu-titulo">Ayuda</h2>
+      </div>
+      <div class="menu-cuerpo">
+        <p><strong>Giroscopio (celular):</strong> al tocar EMPEZAR se calibra la posición neutral. Incliná a los lados
+          para girar, hacia adelante para acelerar y hacia atrás para frenar o dar marcha atrás.</p>
+        <p><strong>Botones táctiles y teclado:</strong> podés usar en todo momento los botones en pantalla o las flechas
+          del teclado (<strong>&#8592; &#8594; &#8593; &#8595;</strong>).</p>
+        <p><strong>Pista:</strong> mantenete sobre el asfalto para conservar la máxima velocidad y agarre.</p>
+      </div>
+      <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
+    </div>
+  </div>
+
+  <!-- Pantalla Créditos -->
+  <div id="pantallaCreditos" class="pantalla-menu oculto" role="dialog" aria-label="Créditos">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo">Información</span>
+        <h2 class="menu-titulo">Créditos</h2>
+      </div>
+      <div class="menu-cuerpo">
+        <p><strong>Desarrollo:</strong> [NOMBRE]</p>
+        <p><strong>Materia:</strong> [MATERIA]</p>
+        <p><strong>Modelos 3D (mclaren.glb / pista.glb):</strong> [ORIGEN ASSETS]</p>
+      </div>
+      <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
+    </div>
+  </div>
+
   <!-- Pantalla de Garaje -->
   <div id="pantallaGarage" class="oculto" role="region" aria-label="Garaje de vehículos">
     <div class="garage-header">
@@ -499,6 +712,16 @@
     const textoPct = document.getElementById('textoPct');
     const btnEmpezar = document.getElementById('btnEmpezar');
     const pantallaGarage = document.getElementById('pantallaGarage');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const pantallaConfig = document.getElementById('pantallaConfig');
+    const pantallaAyuda = document.getElementById('pantallaAyuda');
+    const pantallaCreditos = document.getElementById('pantallaCreditos');
+    const btnMenuPrueba = document.getElementById('btnMenuPrueba');
+    const btnMenuConfig = document.getElementById('btnMenuConfig');
+    const btnMenuAyuda = document.getElementById('btnMenuAyuda');
+    const btnMenuCreditos = document.getElementById('btnMenuCreditos');
+    const chkInvertirVolante = document.getElementById('chkInvertirVolante');
+    const chkInvertirAcel = document.getElementById('chkInvertirAcel');
     const btnVehiculoAnt = document.getElementById('btnVehiculoAnt');
     const btnVehiculoSig = document.getElementById('btnVehiculoSig');
     const nombreVehiculo = document.getElementById('nombreVehiculo');
@@ -664,8 +887,56 @@
     let sensorActivo = false;
     let neutralGamma = 0;   // inclinación lateral neutral (°)
     let neutralBeta = 0;   // inclinación frontal neutral (°)
-    const GYRO_INVERTIR_VOLANTE = true;
-    const GYRO_INVERTIR_ACEL = false;
+    let GYRO_INVERTIR_VOLANTE = true;
+    let GYRO_INVERTIR_ACEL = false;
+
+    /* -- Persistencia de configuración (localStorage 'f1_config') -- */
+    try {
+      const guardado = JSON.parse(localStorage.getItem('f1_config') || 'null');
+      if (guardado && typeof guardado === 'object') {
+        if (typeof guardado.invertirVolante === 'boolean') GYRO_INVERTIR_VOLANTE = guardado.invertirVolante;
+        if (typeof guardado.invertirAcel === 'boolean') GYRO_INVERTIR_ACEL = guardado.invertirAcel;
+      }
+    } catch {
+      /* Si localStorage está bloqueado, usa valores por defecto */
+    }
+
+    chkInvertirVolante.checked = GYRO_INVERTIR_VOLANTE;
+    chkInvertirAcel.checked = GYRO_INVERTIR_ACEL;
+
+    function guardarConfig() {
+      GYRO_INVERTIR_VOLANTE = chkInvertirVolante.checked;
+      GYRO_INVERTIR_ACEL = chkInvertirAcel.checked;
+      try {
+        localStorage.setItem('f1_config', JSON.stringify({
+          invertirVolante: GYRO_INVERTIR_VOLANTE,
+          invertirAcel: GYRO_INVERTIR_ACEL,
+        }));
+      } catch { }
+    }
+
+    chkInvertirVolante.addEventListener('change', guardarConfig);
+    chkInvertirAcel.addEventListener('change', guardarConfig);
+
+    /* -- Navegación de pantallas del menú ------------------------ */
+    const _pantallasUI = [menuOverlay, pantallaConfig, pantallaAyuda, pantallaCreditos, pantallaGarage];
+
+    function mostrarPantalla(id) {
+      for (const p of _pantallasUI) {
+        p.classList.toggle('oculto', p.id !== id);
+      }
+    }
+
+    btnMenuPrueba.addEventListener('click', () => {
+      actualizarGarage();
+      mostrarPantalla('pantallaGarage');
+    });
+    btnMenuConfig.addEventListener('click', () => mostrarPantalla('pantallaConfig'));
+    btnMenuAyuda.addEventListener('click', () => mostrarPantalla('pantallaAyuda'));
+    btnMenuCreditos.addEventListener('click', () => mostrarPantalla('pantallaCreditos'));
+    document.querySelectorAll('[data-volver-menu]').forEach((btn) => {
+      btn.addEventListener('click', () => mostrarPantalla('menuOverlay'));
+    });
 
     // Umbral mínimo para evitar deriva
     const ZONA_MUERTA_GIRO = 3;   // grados
@@ -964,7 +1235,7 @@
         setTimeout(() => {
           pantallaCarga.classList.add('oculto');
           actualizarGarage();
-          pantallaGarage.classList.remove('oculto'); // mostrar garaje cuando ya cargó
+          mostrarPantalla('menuOverlay'); // mostrar menú principal cuando ya cargó
         }, 350);
       },
 
@@ -1091,7 +1362,7 @@
 
           const rayos = [
             { dx: avanX, dz: avanZ, alcance: MEDIO_LARGO + MARGEN_PARED, frente: true },
-            { dx: latX,  dz: latZ,  alcance: MEDIO_ANCHO + MARGEN_PARED, frente: false },
+            { dx: latX, dz: latZ, alcance: MEDIO_ANCHO + MARGEN_PARED, frente: false },
             { dx: -latX, dz: -latZ, alcance: MEDIO_ANCHO + MARGEN_PARED, frente: false },
           ];
 
