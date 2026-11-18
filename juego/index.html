@@ -48,6 +48,7 @@
 
     canvas {
       display: block;
+      touch-action: none;
     }
 
     /* ---- Overlay base ------------------------------------- */
@@ -141,7 +142,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: 2rem 1rem 2.5rem;
+      padding: 1.25rem 1rem 1.5rem;
       pointer-events: none;
     }
 
@@ -198,6 +199,17 @@
       text-transform: uppercase;
     }
 
+    .garage-desbloqueo {
+      font-size: 0.68rem;
+      color: var(--suave);
+      margin-top: 0.25rem;
+      line-height: 1.35;
+    }
+
+    .garage-desbloqueo.oculto {
+      display: none;
+    }
+
     /* Tarjeta central para vehículos bloqueados (silueta + candado) */
     #vistaBloqueado {
       background: rgba(20, 20, 20, 0.92);
@@ -251,9 +263,87 @@
       line-height: 1.45;
     }
 
+    .garage-hint {
+      font-size: 0.65rem;
+      color: var(--suave);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    /* ---- Panel inferior del Garaje (stats + acciones) ----- */
+    .garage-inferior {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 360px;
+      pointer-events: all;
+    }
+
+    .garage-stats {
+      width: 100%;
+      background: rgba(20, 20, 20, 0.9);
+      border: 1px solid var(--linea);
+      padding: 0.65rem 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .garage-stat {
+      display: grid;
+      grid-template-columns: 120px 1fr 28px;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.7rem;
+    }
+
+    .garage-stat-etiqueta {
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--suave);
+    }
+
+    .garage-stat-pista {
+      height: 6px;
+      background: var(--bg);
+      border: 1px solid var(--linea);
+      overflow: hidden;
+    }
+
+    .garage-stat-barra {
+      height: 100%;
+      width: 0%;
+      background: var(--verde);
+      transition: width 0.2s ease;
+    }
+
+    .garage-stat-valor {
+      text-align: right;
+      font-weight: 700;
+      color: var(--texto);
+    }
+
+    .garage-acciones {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0.65rem;
+      width: 100%;
+    }
+
+    .garage-acciones .btn-menu {
+      flex: 1 1 0;
+      width: auto;
+    }
+
     /* ---- Botón EMPEZAR ------------------------------------ */
     #btnEmpezar {
       pointer-events: all;
+      flex: 1;
       font: inherit;
       font-size: 1.1rem;
       font-weight: 800;
@@ -1338,6 +1428,7 @@
       <div class="garage-info">
         <span class="garage-etiqueta">Garaje</span>
         <p id="nombreVehiculo" aria-live="polite">Auto F1</p>
+        <p id="desbloqueoVehiculo" class="garage-desbloqueo oculto"></p>
       </div>
       <button type="button" class="garage-flecha" id="btnVehiculoSig" aria-label="Vehículo siguiente">&#9654;</button>
     </div>
@@ -1367,7 +1458,38 @@
       <p class="bloqueado-texto">Disponible en la próxima actualización</p>
     </div>
 
-    <button id="btnEmpezar" type="button">EMPEZAR</button>
+    <p class="garage-hint">Arrastrá para girar</p>
+
+    <div class="garage-inferior">
+      <div class="garage-stats" aria-label="Prestaciones del vehículo">
+        <div class="garage-stat">
+          <span class="garage-stat-etiqueta">Velocidad</span>
+          <div class="garage-stat-pista" aria-hidden="true">
+            <div class="garage-stat-barra" id="statBarraVel"></div>
+          </div>
+          <span class="garage-stat-valor" id="statValorVel">9</span>
+        </div>
+        <div class="garage-stat">
+          <span class="garage-stat-etiqueta">Aceleración</span>
+          <div class="garage-stat-pista" aria-hidden="true">
+            <div class="garage-stat-barra" id="statBarraAce"></div>
+          </div>
+          <span class="garage-stat-valor" id="statValorAce">10</span>
+        </div>
+        <div class="garage-stat">
+          <span class="garage-stat-etiqueta">Maniobrabilidad</span>
+          <div class="garage-stat-pista" aria-hidden="true">
+            <div class="garage-stat-barra" id="statBarraMan"></div>
+          </div>
+          <span class="garage-stat-valor" id="statValorMan">9</span>
+        </div>
+      </div>
+
+      <div class="garage-acciones">
+        <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
+        <button id="btnEmpezar" type="button">EMPEZAR</button>
+      </div>
+    </div>
   </div>
 
   <div id="avisoRotar">
@@ -1432,6 +1554,13 @@
     const btnVehiculoAnt = document.getElementById('btnVehiculoAnt');
     const btnVehiculoSig = document.getElementById('btnVehiculoSig');
     const nombreVehiculo = document.getElementById('nombreVehiculo');
+    const desbloqueoVehiculo = document.getElementById('desbloqueoVehiculo');
+    const statBarraVel = document.getElementById('statBarraVel');
+    const statBarraAce = document.getElementById('statBarraAce');
+    const statBarraMan = document.getElementById('statBarraMan');
+    const statValorVel = document.getElementById('statValorVel');
+    const statValorAce = document.getElementById('statValorAce');
+    const statValorMan = document.getElementById('statValorMan');
     const vistaBloqueado = document.getElementById('vistaBloqueado');
     const siluetaTanque = document.getElementById('siluetaTanque');
     const siluetaForklift = document.getElementById('siluetaForklift');
@@ -1554,6 +1683,12 @@
     let jugando = false;
     let modelo = null;   // group del auto cargado
     let pista = null;   // group de la pista (opcional hasta que exista pista.glb)
+    let instColinas = null;
+    const _mallasMeta = [];
+    let grupoGarage = null;
+    let _luzGarage1 = null;
+    let _luzGarage2 = null;
+    let _luzGarage3 = null;
 
     /* -- Estado físico del auto ----------------------------- */
     const AUTO = {
@@ -1582,7 +1717,7 @@
     // Spawn sobre la recta (coordenadas PRE-escala de pista.glb)
     const SPAWN_X = 50.5 * FACTOR_MUNDO;
     const SPAWN_Z = -31.0 * FACTOR_MUNDO;
-    const Z_CHORD = -25.65 * FACTOR_MUNDO; // tramo recto interior superior (-27.33 a -23.97 en modelo)
+    const Z_CHORD = -22.815 * FACTOR_MUNDO; // tramo recto interior superior (-23.970 a -21.660 en modelo; con biseles -24.273 a -21.348)
     const SPAWN_ANG = Math.PI / 2; // mirando a lo largo de la recta (hacia -X)
 
     /* =========================================================
@@ -1865,12 +2000,96 @@
       }
     });
 
+    function crearGarage() {
+      grupoGarage = new THREE.Group();
+      grupoGarage.visible = false;
+
+      const sala = new THREE.Mesh(
+        new THREE.BoxGeometry(26, 11, 26),
+        new THREE.MeshStandardMaterial({
+          color: 0x121212,
+          roughness: 1,
+          side: THREE.BackSide,
+        })
+      );
+      sala.position.y = 5.1;
+      grupoGarage.add(sala);
+
+      const pisoGarage = new THREE.Mesh(
+        new THREE.PlaneGeometry(26, 26),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95 })
+      );
+      pisoGarage.rotation.x = -Math.PI / 2;
+      pisoGarage.position.y = -0.31;
+      grupoGarage.add(pisoGarage);
+
+      const mesa = new THREE.Mesh(
+        new THREE.CylinderGeometry(5, 5, 0.3, 48),
+        new THREE.MeshStandardMaterial({
+          color: 0x1c1c1c,
+          metalness: 0.6,
+          roughness: 0.4,
+        })
+      );
+      mesa.position.y = -0.15;
+      grupoGarage.add(mesa);
+
+      const aro = new THREE.Mesh(
+        new THREE.TorusGeometry(5, 0.06, 8, 64),
+        new THREE.MeshBasicMaterial({ color: 0x2ecc71 })
+      );
+      aro.rotation.x = -Math.PI / 2;
+      aro.position.y = 0.01;
+      grupoGarage.add(aro);
+
+      const geoTira = new THREE.BoxGeometry(0.12, 0.12, 24);
+      const matTira = new THREE.MeshBasicMaterial({ color: 0x2ecc71 });
+      const tiraIzq = new THREE.Mesh(geoTira, matTira);
+      tiraIzq.position.set(-12.9, 8.5, 0);
+      const tiraDer = new THREE.Mesh(geoTira, matTira);
+      tiraDer.position.set(12.9, 8.5, 0);
+      grupoGarage.add(tiraIzq, tiraDer);
+
+      escena.add(grupoGarage);
+
+      // Tres luces en escena con intensity = 0 inicial y visible = true permanente
+      _luzGarage1 = new THREE.PointLight(0xffffff, 0, 45);
+      _luzGarage1.position.set(0, 9, 0);
+      _luzGarage2 = new THREE.PointLight(0x2ecc71, 0, 30);
+      _luzGarage2.position.set(-8, 3, -8);
+      _luzGarage3 = new THREE.PointLight(0xffffff, 0, 30);
+      _luzGarage3.position.set(8, 3, 8);
+      escena.add(_luzGarage1, _luzGarage2, _luzGarage3);
+    }
+
+    function actualizarEscenaGarage(activo) {
+      if (!grupoGarage) return;
+      grupoGarage.visible = activo;
+      if (pista) pista.visible = !activo;
+      if (instColinas) instColinas.visible = !activo;
+      for (const m of _mallasMeta) {
+        m.visible = !activo;
+      }
+      grupoGarage.position.set(AUTO.x, AUTO.y, AUTO.z);
+      if (_luzGarage1 && _luzGarage2 && _luzGarage3) {
+        _luzGarage1.position.set(AUTO.x, AUTO.y + 9, AUTO.z);
+        _luzGarage2.position.set(AUTO.x - 8, AUTO.y + 3, AUTO.z - 8);
+        _luzGarage3.position.set(AUTO.x + 8, AUTO.y + 3, AUTO.z + 8);
+        _luzGarage1.intensity = activo ? 1.4 : 0;
+        _luzGarage2.intensity = activo ? 0.9 : 0;
+        _luzGarage3.intensity = activo ? 0.5 : 0;
+      }
+    }
+
+    crearGarage();
+
     const _pantallasUI = [menuOverlay, pantallaConfig, pantallaAyuda, pantallaInstrucciones, pantallaCreditos, pantallaGarage, pantallaFinal];
 
     function mostrarPantalla(id) {
       for (const p of _pantallasUI) {
         p.classList.toggle('oculto', p.id !== id);
       }
+      actualizarEscenaGarage(id === 'pantallaGarage');
       if (id === 'pantallaCreditos') {
         reiniciarRollCreditos();
         iniciarMusicaCreditos();
@@ -2191,15 +2410,69 @@
        GARAJE Y BOTÓN EMPEZAR
        ========================================================= */
     const VEHICULOS = [
-      { nombre: 'Auto F1', bloqueado: false, tipo: 'f1' },
-      { nombre: 'Tanque', bloqueado: true, tipo: 'tanque' },
-      { nombre: 'Tren delantero', bloqueado: true, tipo: 'forklift' },
+      {
+        nombre: 'Auto F1',
+        bloqueado: false,
+        tipo: 'f1',
+        stats: { vel: 9, ace: 10, man: 9 },
+        desbloqueo: '',
+      },
+      {
+        nombre: 'Tanque',
+        bloqueado: true,
+        tipo: 'tanque',
+        stats: { vel: 4, ace: 3, man: 5 },
+        desbloqueo: 'Completá una carrera de 3 vueltas',
+      },
+      {
+        nombre: 'Tren delantero',
+        bloqueado: true,
+        tipo: 'forklift',
+        stats: { vel: 6, ace: 7, man: 10 },
+        desbloqueo: 'Bajá de 3:00 en el total',
+      },
     ];
+    const CLAVE_VEHICULO = 'vertice_vehiculo';
     let indiceVehiculo = 0;
+    try {
+      const rawVeh = localStorage.getItem(CLAVE_VEHICULO);
+      const guardadoVeh = rawVeh !== null ? Number(rawVeh) : NaN;
+      if (
+        Number.isFinite(guardadoVeh) &&
+        Number.isInteger(guardadoVeh) &&
+        guardadoVeh >= 0 &&
+        guardadoVeh < VEHICULOS.length
+      ) {
+        indiceVehiculo = guardadoVeh;
+      }
+    } catch {
+      indiceVehiculo = 0;
+    }
+
+    function guardarVehiculo() {
+      try {
+        localStorage.setItem(CLAVE_VEHICULO, String(indiceVehiculo));
+      } catch {}
+    }
 
     function actualizarGarage() {
       const v = VEHICULOS[indiceVehiculo];
       nombreVehiculo.textContent = v.nombre;
+
+      if (v.bloqueado && v.desbloqueo) {
+        desbloqueoVehiculo.textContent = v.desbloqueo;
+        desbloqueoVehiculo.classList.remove('oculto');
+      } else {
+        desbloqueoVehiculo.textContent = '';
+        desbloqueoVehiculo.classList.add('oculto');
+      }
+
+      statBarraVel.style.width = v.bloqueado ? '0%' : (v.stats.vel * 10) + '%';
+      statBarraAce.style.width = v.bloqueado ? '0%' : (v.stats.ace * 10) + '%';
+      statBarraMan.style.width = v.bloqueado ? '0%' : (v.stats.man * 10) + '%';
+      statValorVel.textContent = v.bloqueado ? '???' : String(v.stats.vel);
+      statValorAce.textContent = v.bloqueado ? '???' : String(v.stats.ace);
+      statValorMan.textContent = v.bloqueado ? '???' : String(v.stats.man);
 
       if (v.bloqueado) {
         if (modelo) modelo.visible = false;
@@ -2212,24 +2485,79 @@
         vistaBloqueado.classList.add('oculto');
         btnEmpezar.disabled = false;
       }
+      reiniciarGiroPresentacion();
     }
 
     btnVehiculoAnt.addEventListener('click', () => {
       indiceVehiculo = (indiceVehiculo - 1 + VEHICULOS.length) % VEHICULOS.length;
+      guardarVehiculo();
       actualizarGarage();
     });
 
     btnVehiculoSig.addEventListener('click', () => {
       indiceVehiculo = (indiceVehiculo + 1) % VEHICULOS.length;
+      guardarVehiculo();
       actualizarGarage();
     });
+
+    /* -- Girar el auto con el dedo en el garaje ------------- */
+    let _giroBase = 0;
+    let _giroGarage = 0;
+    let _giroPres = 0;
+    let _giroPresT = 0;
+    let _giroPresDur = 2.6;
+    let _punteroGarageId = null;
+    let _ultimoXGarage = 0;
+
+    function reiniciarGiroPresentacion() {
+      if (!modelo) return;
+      _giroGarage = 0;
+      _giroPres = 0;
+      _giroPresT = 0;
+      _giroPresDur = 2.6;
+    }
+
+    function _garageVisible() {
+      return !jugando && !pantallaGarage.classList.contains('oculto');
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      if (!_garageVisible() || _punteroGarageId !== null) return;
+      _giroPresT = _giroPresDur;
+      _punteroGarageId = e.pointerId;
+      _ultimoXGarage = e.clientX;
+      try {
+        renderer.domElement.setPointerCapture(e.pointerId);
+      } catch {}
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (_punteroGarageId === null || e.pointerId !== _punteroGarageId) return;
+      if (!_garageVisible()) {
+        _punteroGarageId = null;
+        return;
+      }
+      const dx = e.clientX - _ultimoXGarage;
+      _ultimoXGarage = e.clientX;
+      _giroGarage += dx * 0.01;
+      _giroGarage = _giroGarage % (Math.PI * 2);
+    });
+
+    function _soltarPunteroGarage(e) {
+      if (_punteroGarageId !== null && e.pointerId === _punteroGarageId) {
+        _punteroGarageId = null;
+      }
+    }
+
+    renderer.domElement.addEventListener('pointerup', _soltarPunteroGarage);
+    renderer.domElement.addEventListener('pointercancel', _soltarPunteroGarage);
 
     btnEmpezar.addEventListener('click', async () => {
       if (VEHICULOS[indiceVehiculo].bloqueado) return;
       pantallaHorizontal();
       // Pedir permiso del sensor DENTRO del gesto del toque
       await pedirPermisoSensor();
-      pantallaGarage.classList.add('oculto');
+      mostrarPantalla(null);
       resetearEIniciarCarrera();
     });
 
@@ -2399,7 +2727,7 @@
       const geoColina = new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55);
       const matColina = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
-      const instColinas = new THREE.InstancedMesh(geoColina, matColina, CANT_COLINAS);
+      instColinas = new THREE.InstancedMesh(geoColina, matColina, CANT_COLINAS);
       instColinas.castShadow = false;
       instColinas.receiveShadow = false;
       instColinas.frustumCulled = false;
@@ -2445,7 +2773,7 @@
       escena.add(instColinas);
     }
 
-    function crearLineaMeta(zMeta) {
+    function crearLineaMeta(zMeta, colorClaro = '#ffffff') {
       const cols = 2;
       const filas = 12;
       const tamCelda = 16;
@@ -2456,7 +2784,7 @@
 
       for (let f = 0; f < filas; f++) {
         for (let col = 0; col < cols; col++) {
-          ctx.fillStyle = (f + col) % 2 === 0 ? '#ffffff' : '#111111';
+          ctx.fillStyle = (f + col) % 2 === 0 ? colorClaro : '#111111';
           ctx.fillRect(col * tamCelda, f * tamCelda, tamCelda, tamCelda);
         }
       }
@@ -2465,8 +2793,8 @@
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.magFilter = THREE.NearestFilter;
 
-      // 3 m de profundidad (eje X) por 10 m de ancho (eje Z)
-      const geo = new THREE.PlaneGeometry(3, 10);
+      // 3 m de profundidad (eje X) por 8.5 m de ancho (eje Z)
+      const geo = new THREE.PlaneGeometry(3, 8.5);
       const mat = new THREE.MeshBasicMaterial({
         map: tex,
         transparent: false,
@@ -2483,6 +2811,7 @@
       mallaMeta.rotation.x = -Math.PI / 2;
       mallaMeta.position.set(SPAWN_X, yMeta, zMeta);
       escena.add(mallaMeta);
+      _mallasMeta.push(mallaMeta);
     }
 
     function alturaSueloEn(x, z) {
@@ -2566,8 +2895,8 @@
           const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
           crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
           crearColinasInstanciadas(mallaTierraExt);
-          crearLineaMeta(SPAWN_Z);
-          crearLineaMeta(Z_CHORD);
+          crearLineaMeta(SPAWN_Z, '#ffffff');
+          crearLineaMeta(Z_CHORD, '#2ecc71');
         } catch (e) {
           console.warn(e);
         }
@@ -2632,6 +2961,7 @@
           AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
           modelo.position.y = AUTO.y;
         }
+        _giroBase = modelo.rotation.y;
 
         barraProgreso.style.width = '100%';
         textoPct.textContent = '100%';
@@ -2931,7 +3261,19 @@
         modelo.rotation.y = AUTO.angulo;
 
         actualizarCamara(dt);
-        actualizarHud();
+        actualizarHud(ahora);
+      } else if (!jugando && modelo) {
+        if (_giroPresT < _giroPresDur) {
+          _giroPresT = Math.min(_giroPresT + dt, _giroPresDur);
+          const p = _giroPresT / _giroPresDur;
+          const e = 1 - Math.pow(1 - p, 3);
+          _giroPres = (Math.PI / 4 + Math.PI * 2 * 3) * e;
+        }
+        modelo.rotation.y = _giroBase + _giroGarage + _giroPres;
+        if (grupoGarage && grupoGarage.visible) {
+          camara.position.set(AUTO.x + 8.5, AUTO.y + 3.4, AUTO.z + 8.5);
+          camara.lookAt(AUTO.x, AUTO.y + 1.0, AUTO.z);
+        }
       }
 
       renderer.render(escena, camara);
