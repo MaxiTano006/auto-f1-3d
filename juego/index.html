@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Auto F1 — Juego</title>
+  <title>Vértice Motorsport — Juego</title>
 
   <script type="importmap">
   {
@@ -568,6 +568,7 @@
     #menuOverlay:not(.oculto) .menu-botones .btn-menu:nth-child(3) { animation-delay: 160ms; }
     #menuOverlay:not(.oculto) .menu-botones .btn-menu:nth-child(4) { animation-delay: 240ms; }
     #menuOverlay:not(.oculto) .menu-botones .btn-menu:nth-child(5) { animation-delay: 320ms; }
+    #menuOverlay:not(.oculto) .menu-botones .btn-menu:nth-child(6) { animation-delay: 400ms; }
 
     @media (prefers-reduced-motion: reduce) {
       #menuOverlay:not(.oculto) .menu-botones .btn-menu {
@@ -898,6 +899,23 @@
       letter-spacing: 0.06em;
       color: var(--texto);
     }
+    #hudTiempo.penalizando {
+      color: #ff3b30;
+    }
+
+    .hud-vuelta-wrap {
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      left: calc(16px + env(safe-area-inset-left, 0px));
+      text-align: left;
+      padding: 0.4rem 0.85rem;
+      border-left: 3px solid var(--verde);
+    }
+    #hudVuelta {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #fff;
+    }
 
     .hud-vel-wrap {
       bottom: 16px;
@@ -919,6 +937,210 @@
       font-weight: 700;
       letter-spacing: 0.1em;
       color: var(--verde);
+    }
+
+    #hudAvisoCp {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 20, 0.92);
+      border: 1px solid #ff3b30;
+      color: #ff3b30;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.9rem;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    #hudAvisoCp.oculto {
+      display: none;
+    }
+
+    /* ---- Cuenta regresiva de largada (#cuentaRegresiva) --- */
+    #cuentaRegresiva {
+      position: fixed;
+      inset: 0;
+      z-index: 14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      font-variant-numeric: tabular-nums;
+    }
+    #cuentaRegresiva.oculto {
+      display: none;
+    }
+    #cuentaRegresiva span {
+      font-size: clamp(3.8rem, 16vh, 6rem);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #fff;
+      background: rgba(13, 13, 13, 0.78);
+      border: 2px solid var(--verde);
+      padding: 0.35rem 1.4rem;
+      border-radius: 2px;
+      text-shadow: 0 0 18px rgba(46, 204, 113, 0.65);
+    }
+
+    /* ---- Pantalla Final de Carrera (#pantallaFinal) ------- */
+    #pantallaFinal {
+      padding-top: 2.5rem;
+    }
+    #pantallaFinal .menu-caja {
+      max-width: 440px;
+      gap: 0.65rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .final-subtitulo {
+      color: var(--verde);
+    }
+    .final-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    .final-bloque {
+      background: var(--bg);
+      border: 1px solid var(--linea);
+      padding: 0.45rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .final-bloque.destacado {
+      border-left: 3px solid var(--verde);
+    }
+    .final-etiqueta {
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--suave);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+    }
+    .final-valor {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .final-valor.penal {
+      color: #ff3b30;
+    }
+    .badge-record {
+      font-size: 0.52rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 0.1rem 0.35rem;
+      background: rgba(46, 204, 113, 0.2);
+      border: 1px solid var(--verde);
+      color: var(--verde);
+    }
+    .badge-record.oculto {
+      display: none;
+    }
+    .final-vueltas {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.4rem;
+      background: var(--bg);
+      border: 1px solid var(--linea);
+      padding: 0.45rem 0.65rem;
+      font-size: 0.76rem;
+      color: var(--suave);
+    }
+    .final-vueltas strong {
+      color: var(--texto);
+    }
+    .final-botones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      margin-top: 0.2rem;
+    }
+    #btnReiniciarCarrera,
+    #btnMenuFinal {
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #btnReiniciarCarrera {
+      border-color: var(--verde);
+      background: var(--verde);
+      color: #0d0d0d;
+      font-weight: 800;
+    }
+
+    /* ---- Pantalla de Instrucciones con QR ----------------- */
+    #pantallaInstrucciones .menu-caja {
+      max-width: 680px;
+      gap: 0.75rem;
+    }
+    .inst-layout {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+    }
+    @media (max-width: 560px) {
+      .inst-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .inst-columna {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .inst-bloque {
+      background: var(--bg);
+      border: 1px solid var(--linea);
+      border-left: 3px solid var(--verde);
+      padding: 0.55rem 0.75rem;
+    }
+    .inst-bloque-titulo {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--verde);
+      margin-bottom: 0.35rem;
+    }
+    .inst-lista {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.76rem;
+      color: var(--suave);
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 0.22rem;
+    }
+    .inst-qr-bloque {
+      background: var(--bg);
+      border: 1px solid var(--linea);
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      text-align: center;
+    }
+    .inst-qr-img {
+      display: block;
+      background: #fff;
+      padding: 0.5rem;
+      border-radius: 2px;
+    }
+    .inst-qr-url {
+      font-size: 0.66rem;
+      color: var(--suave);
+      letter-spacing: 0.03em;
+      word-break: break-all;
     }
   </style>
 </head>
@@ -954,6 +1176,7 @@
         </button>
         <button type="button" class="btn-menu" id="btnMenuConfig">CONFIGURACIÓN</button>
         <button type="button" class="btn-menu" id="btnMenuAyuda">AYUDA</button>
+        <button type="button" class="btn-menu" id="btnInstrucciones">INSTRUCCIONES</button>
         <button type="button" class="btn-menu" id="btnMenuCreditos">CRÉDITOS</button>
       </div>
     </div>
@@ -996,17 +1219,58 @@
     </div>
   </div>
 
+  <!-- Pantalla Instrucciones con QR -->
+  <div id="pantallaInstrucciones" class="pantalla-menu oculto" role="dialog" aria-label="Instrucciones">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo">Guía rápida</span>
+        <h2 class="menu-titulo">Instrucciones</h2>
+      </div>
+
+      <div class="inst-layout">
+        <div class="inst-columna">
+          <div class="inst-bloque">
+            <h3 class="inst-bloque-titulo">Controles</h3>
+            <ul class="inst-lista">
+              <li>Giroscopio: incliná el teléfono a los lados para doblar y hacia adelante o atrás para acelerar y frenar.</li>
+              <li>Se calibra automáticamente al tocar EMPEZAR.</li>
+              <li>Botón MENÚ arriba a la izquierda para volver.</li>
+            </ul>
+          </div>
+          <div class="inst-bloque">
+            <h3 class="inst-bloque-titulo">Reglas de carrera</h3>
+            <ul class="inst-lista">
+              <li>3 vueltas, gana el menor tiempo total.</li>
+              <li>Tres checkpoints en orden; si cruzás la meta sin pasarlos, la vuelta no cuenta y aparece "Checkpoint perdido".</li>
+              <li>Fuera del asfalto el cronómetro corre al doble y el número se pone rojo.</li>
+              <li>Al terminar se guarda el récord en el navegador.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="inst-qr-bloque">
+          <h3 class="inst-bloque-titulo">Escaneá para jugar</h3>
+          <img src="qr-juego.png" alt="Código QR para abrir el juego" width="200" height="200" class="inst-qr-img" />
+          <span class="inst-qr-url">https://auto-f1-3d.vercel.app/juego/</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-menu" id="btnVolverInstrucciones">VOLVER</button>
+    </div>
+  </div>
+
   <!-- Pantalla Créditos -->
   <div id="pantallaCreditos" class="pantalla-menu oculto" role="dialog" aria-label="Créditos">
     <button type="button" id="salidaSecretaCreditos" aria-label="Zona secreta"></button>
     <div id="creditosRollo">
       <div class="cred-apertura">
-        <h2 class="cred-juego">Auto F1</h2>
+        <h2 class="cred-juego">Vértice Motorsport</h2>
         <p class="cred-autor">Máximo Beneventano</p>
         <p class="cred-materia">Diseño y Programación Web II · DMM4BP · 2026</p>
         <p class="cred-ficha"><strong>Pista:</strong> creada por Máximo Beneventano.</p>
         <p class="cred-ficha"><strong>Vehículo:</strong> “Aston Martin F1 AMR23 2023” de Redgrund, publicado en Sketchfab bajo licencia CC Attribution, modificado por Máximo para lograr estética low-poly y adaptar sus capas.</p>
         <p class="cred-ficha"><strong>Fondo del menú:</strong> generado con IA.</p>
+        <p class="cred-ficha"><strong>Logo:</strong> generado con IA.</p>
         <p class="cred-ficha"><strong>Motor gráfico:</strong> Three.js.</p>
       </div>
 
@@ -1018,6 +1282,52 @@
       </div>
 
       <button type="button" class="btn-menu" id="btnVolverCreditosRM" data-volver-menu>VOLVER</button>
+    </div>
+  </div>
+
+  <!-- Pantalla Final de Carrera -->
+  <div id="pantallaFinal" class="pantalla-menu oculto" role="dialog" aria-label="Resultados de la carrera">
+    <div class="menu-caja">
+      <div class="menu-encabezado">
+        <span class="menu-subtitulo final-subtitulo">3 Vueltas Completadas</span>
+        <h2 class="menu-titulo">Carrera Finalizada</h2>
+      </div>
+
+      <div class="final-grid">
+        <div class="final-bloque destacado">
+          <span class="final-etiqueta">
+            Tiempo Total
+            <span id="badgeRecordTotal" class="badge-record oculto">NUEVO RÉCORD</span>
+          </span>
+          <span id="finalTiempoTotal" class="final-valor">00:00.0</span>
+        </div>
+        <div class="final-bloque">
+          <span class="final-etiqueta">Penalización Pasto</span>
+          <span id="finalPenalizacion" class="final-valor penal">+00:00.0</span>
+        </div>
+        <div class="final-bloque destacado">
+          <span class="final-etiqueta">
+            Mejor Vuelta
+            <span id="badgeRecordVuelta" class="badge-record oculto">NUEVO RÉCORD</span>
+          </span>
+          <span id="finalMejorVuelta" class="final-valor">00:00.0</span>
+        </div>
+        <div class="final-bloque">
+          <span class="final-etiqueta">Récord Histórico</span>
+          <span id="finalRecordHistorico" class="final-valor" style="font-size:0.78rem">—</span>
+        </div>
+      </div>
+
+      <div class="final-vueltas">
+        <span>V1: <strong id="finalV1">00:00.0</strong></span>
+        <span>V2: <strong id="finalV2">00:00.0</strong></span>
+        <span>V3: <strong id="finalV3">00:00.0</strong></span>
+      </div>
+
+      <div class="final-botones">
+        <button type="button" class="btn-menu" id="btnReiniciarCarrera">REINTENTAR</button>
+        <button type="button" class="btn-menu" id="btnMenuFinal">MENÚ</button>
+      </div>
     </div>
   </div>
 
@@ -1077,10 +1387,20 @@
       <span class="hud-etiqueta">Tiempo</span>
       <span id="hudTiempo">00:00.0</span>
     </div>
+    <div class="hud-caja hud-vuelta-wrap">
+      <span class="hud-etiqueta">Vuelta</span>
+      <span id="hudVuelta">1/3</span>
+    </div>
     <div class="hud-caja hud-vel-wrap">
       <span id="hudVelocidad">0</span>
       <span class="hud-unidad">KM/H</span>
     </div>
+    <div id="hudAvisoCp" class="oculto" role="status" aria-live="polite">Checkpoint perdido</div>
+  </div>
+
+  <!-- Cuenta regresiva de largada -->
+  <div id="cuentaRegresiva" class="oculto" role="status" aria-live="assertive">
+    <span id="textoCuentaRegresiva">3</span>
   </div>
 
   <script type="module">
@@ -1099,10 +1419,13 @@
     const menuOverlay = document.getElementById('menuOverlay');
     const pantallaConfig = document.getElementById('pantallaConfig');
     const pantallaAyuda = document.getElementById('pantallaAyuda');
+    const pantallaInstrucciones = document.getElementById('pantallaInstrucciones');
     const pantallaCreditos = document.getElementById('pantallaCreditos');
     const btnMenuPrueba = document.getElementById('btnMenuPrueba');
     const btnMenuConfig = document.getElementById('btnMenuConfig');
     const btnMenuAyuda = document.getElementById('btnMenuAyuda');
+    const btnInstrucciones = document.getElementById('btnInstrucciones');
+    const btnVolverInstrucciones = document.getElementById('btnVolverInstrucciones');
     const btnMenuCreditos = document.getElementById('btnMenuCreditos');
     const chkInvertirVolante = document.getElementById('chkInvertirVolante');
     const chkInvertirAcel = document.getElementById('chkInvertirAcel');
@@ -1116,7 +1439,23 @@
     const hudJuego = document.getElementById('hudJuego');
     const btnSalirMenu = document.getElementById('btnSalirMenu');
     const hudTiempo = document.getElementById('hudTiempo');
+    const hudVuelta = document.getElementById('hudVuelta');
     const hudVelocidad = document.getElementById('hudVelocidad');
+    const hudAvisoCp = document.getElementById('hudAvisoCp');
+    const cuentaRegresiva = document.getElementById('cuentaRegresiva');
+    const textoCuentaRegresiva = document.getElementById('textoCuentaRegresiva');
+    const pantallaFinal = document.getElementById('pantallaFinal');
+    const finalTiempoTotal = document.getElementById('finalTiempoTotal');
+    const finalPenalizacion = document.getElementById('finalPenalizacion');
+    const finalMejorVuelta = document.getElementById('finalMejorVuelta');
+    const finalRecordHistorico = document.getElementById('finalRecordHistorico');
+    const finalV1 = document.getElementById('finalV1');
+    const finalV2 = document.getElementById('finalV2');
+    const finalV3 = document.getElementById('finalV3');
+    const badgeRecordTotal = document.getElementById('badgeRecordTotal');
+    const badgeRecordVuelta = document.getElementById('badgeRecordVuelta');
+    const btnReiniciarCarrera = document.getElementById('btnReiniciarCarrera');
+    const btnMenuFinal = document.getElementById('btnMenuFinal');
 
     /* =========================================================
        RENDERER
@@ -1525,7 +1864,7 @@
       }
     });
 
-    const _pantallasUI = [menuOverlay, pantallaConfig, pantallaAyuda, pantallaCreditos, pantallaGarage];
+    const _pantallasUI = [menuOverlay, pantallaConfig, pantallaAyuda, pantallaInstrucciones, pantallaCreditos, pantallaGarage, pantallaFinal];
 
     function mostrarPantalla(id) {
       for (const p of _pantallasUI) {
@@ -1545,6 +1884,8 @@
     });
     btnMenuConfig.addEventListener('click', () => mostrarPantalla('pantallaConfig'));
     btnMenuAyuda.addEventListener('click', () => mostrarPantalla('pantallaAyuda'));
+    btnInstrucciones.addEventListener('click', () => mostrarPantalla('pantallaInstrucciones'));
+    btnVolverInstrucciones.addEventListener('click', () => mostrarPantalla('menuOverlay'));
     btnMenuCreditos.addEventListener('click', () => mostrarPantalla('pantallaCreditos'));
     document.querySelectorAll('[data-volver-menu]').forEach((btn) => {
       btn.addEventListener('click', () => mostrarPantalla('menuOverlay'));
@@ -1660,10 +2001,30 @@
     }
 
     /* =========================================================
-       HUD Y BOTÓN VOLVER AL MENÚ
+       HUD, CARRERA (3 VUELTAS) Y BOTÓN VOLVER AL MENÚ
        ========================================================= */
-    let _tInicioSesion = 0;
     let _tUltimaActHud = 0;
+    let _tUltimaVib = 0;
+    let _tiempoCarrera = 0;
+    let _penalizacionSeg = 0;
+    let _tiempoInicioVuelta = 0;
+    const tiemposVuelta = [];
+    let vuelta = 1;
+    let siguienteCheckpoint = 0;
+    let carreraTerminada = false;
+    let _largando = false;
+    let _timerCuenta = null;
+    let _hudEnPastoPrev = false;
+    let _timerAvisoCp = null;
+
+    const CLAVE_RECORD = 'vertice_record';
+
+    const CHECKPOINTS = [
+      { x: -36.9, z: 21.0 },
+      { x: 152.4, z: -93.0 },
+      { x: 342.6, z: 21.0 },
+    ];
+    const RADIO_CP_SQ = 18 * 18;
 
     function formatearTiempo(seg) {
       const min = Math.floor(seg / 60);
@@ -1680,12 +2041,130 @@
       _tUltimaActHud = ahora;
       const kmh = Math.round(Math.abs(AUTO.vel) * 3.6);
       hudVelocidad.textContent = kmh;
-      const transcurrido = Math.max(0, (ahora - _tInicioSesion) / 1000);
-      hudTiempo.textContent = formatearTiempo(transcurrido);
+      hudTiempo.textContent = formatearTiempo(_tiempoCarrera);
     }
 
-    btnSalirMenu.addEventListener('click', () => {
+    function mostrarAvisoCheckpointPerdido() {
+      hudAvisoCp.classList.remove('oculto');
+      clearTimeout(_timerAvisoCp);
+      _timerAvisoCp = setTimeout(() => {
+        hudAvisoCp.classList.add('oculto');
+      }, 2000);
+    }
+
+    function leerRecord() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(CLAVE_RECORD) || 'null');
+        if (raw && typeof raw === 'object') {
+          return {
+            mejorTotal: Number.isFinite(raw.mejorTotal) && raw.mejorTotal > 0 ? raw.mejorTotal : null,
+            mejorVuelta: Number.isFinite(raw.mejorVuelta) && raw.mejorVuelta > 0 ? raw.mejorVuelta : null,
+          };
+        }
+      } catch {}
+      return { mejorTotal: null, mejorVuelta: null };
+    }
+
+    function finalizarCarrera() {
+      carreraTerminada = true;
+      hudTiempo.textContent = formatearTiempo(_tiempoCarrera);
+      hudJuego.classList.add('oculto');
+
+      const mejorVueltaActual = tiemposVuelta.length > 0 ? Math.min(...tiemposVuelta) : _tiempoCarrera;
+      const rec = leerRecord();
+
+      const nuevoRecTotal = rec.mejorTotal === null || _tiempoCarrera < rec.mejorTotal;
+      const nuevoRecVuelta = rec.mejorVuelta === null || mejorVueltaActual < rec.mejorVuelta;
+
+      if (nuevoRecTotal) rec.mejorTotal = _tiempoCarrera;
+      if (nuevoRecVuelta) rec.mejorVuelta = mejorVueltaActual;
+
+      if (nuevoRecTotal || nuevoRecVuelta) {
+        try {
+          localStorage.setItem(CLAVE_RECORD, JSON.stringify(rec));
+        } catch {}
+      }
+
+      finalTiempoTotal.textContent = formatearTiempo(_tiempoCarrera);
+      finalPenalizacion.textContent = '+' + formatearTiempo(_penalizacionSeg);
+      finalMejorVuelta.textContent = formatearTiempo(mejorVueltaActual);
+      finalV1.textContent = formatearTiempo(tiemposVuelta[0] || 0);
+      finalV2.textContent = formatearTiempo(tiemposVuelta[1] || 0);
+      finalV3.textContent = formatearTiempo(tiemposVuelta[2] || 0);
+
+      const txtHistTotal = rec.mejorTotal !== null ? formatearTiempo(rec.mejorTotal) : '—';
+      const txtHistVuelta = rec.mejorVuelta !== null ? formatearTiempo(rec.mejorVuelta) : '—';
+      finalRecordHistorico.textContent = `Tot: ${txtHistTotal} · Vta: ${txtHistVuelta}`;
+
+      badgeRecordTotal.classList.toggle('oculto', !nuevoRecTotal);
+      badgeRecordVuelta.classList.toggle('oculto', !nuevoRecVuelta);
+
+      mostrarPantalla('pantallaFinal');
+    }
+
+    function iniciarCuentaRegresiva() {
+      clearTimeout(_timerCuenta);
+      _largando = true;
+      const pasos = [
+        { txt: '3', ms: 1000 },
+        { txt: '2', ms: 1000 },
+        { txt: '1', ms: 1000 },
+        { txt: '¡YA!', ms: 500 },
+      ];
+      let idx = 0;
+      textoCuentaRegresiva.textContent = pasos[0].txt;
+      cuentaRegresiva.classList.remove('oculto');
+
+      function avanzarPaso() {
+        idx++;
+        if (idx < pasos.length) {
+          textoCuentaRegresiva.textContent = pasos[idx].txt;
+          _timerCuenta = setTimeout(avanzarPaso, pasos[idx].ms);
+        } else {
+          _largando = false;
+          _tiempoCarrera = 0;
+          _tiempoInicioVuelta = 0;
+          cuentaRegresiva.classList.add('oculto');
+        }
+      }
+
+      _timerCuenta = setTimeout(avanzarPaso, pasos[0].ms);
+    }
+
+    function resetearEIniciarCarrera() {
+      AUTO.x = SPAWN_X;
+      AUTO.z = SPAWN_Z;
+      AUTO.angulo = SPAWN_ANG;
+      AUTO.vel = 0;
+      AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
+      _tUltimaVib = 0;
+      _tiempoCarrera = 0;
+      _penalizacionSeg = 0;
+      _tiempoInicioVuelta = 0;
+      tiemposVuelta.length = 0;
+      vuelta = 1;
+      siguienteCheckpoint = 0;
+      carreraTerminada = false;
+      if (_hudEnPastoPrev) {
+        hudTiempo.classList.remove('penalizando');
+        _hudEnPastoPrev = false;
+      }
+      clearTimeout(_timerAvisoCp);
+      hudAvisoCp.classList.add('oculto');
+      _tUltimaActHud = 0;
+      hudVelocidad.textContent = '0';
+      hudTiempo.textContent = '00:00.0';
+      hudVuelta.textContent = '1/3';
+      hudJuego.classList.remove('oculto');
+      jugando = true;
+      iniciarCuentaRegresiva();
+    }
+
+    function salirAlMenuPrincipal() {
       jugando = false;
+      _largando = false;
+      clearTimeout(_timerCuenta);
+      cuentaRegresiva.classList.add('oculto');
       hudJuego.classList.add('oculto');
       try {
         if (document.fullscreenElement && document.exitFullscreen) {
@@ -1696,6 +2175,15 @@
         }
       } catch {}
       mostrarPantalla('menuOverlay');
+    }
+
+    btnSalirMenu.addEventListener('click', salirAlMenuPrincipal);
+    btnMenuFinal.addEventListener('click', salirAlMenuPrincipal);
+
+    btnReiniciarCarrera.addEventListener('click', () => {
+      pantallaFinal.classList.add('oculto');
+      calibrarYActivar();
+      resetearEIniciarCarrera();
     });
 
     /* =========================================================
@@ -1740,18 +2228,8 @@
       pantallaHorizontal();
       // Pedir permiso del sensor DENTRO del gesto del toque
       await pedirPermisoSensor();
-      AUTO.x = SPAWN_X;
-      AUTO.z = SPAWN_Z;
-      AUTO.angulo = SPAWN_ANG;
-      AUTO.vel = 0;
-      AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
       pantallaGarage.classList.add('oculto');
-      _tInicioSesion = performance.now();
-      _tUltimaActHud = 0;
-      hudVelocidad.textContent = '0';
-      hudTiempo.textContent = '00:00.0';
-      hudJuego.classList.remove('oculto');
-      jugando = true;
+      resetearEIniciarCarrera();
     });
 
     /* =========================================================
@@ -1967,7 +2445,10 @@
     }
 
     function alturaSueloEn(x, z) {
-      if (!pista) return 0;
+      if (!pista) {
+        _mallaSueloActual = null;
+        return 0;
+      }
       _origenRayo.set(x, 50, z);
       _raycasterSuelo.set(_origenRayo, _dirAbajo);
       const hits = _mallasSuelo.length > 0
@@ -1977,6 +2458,7 @@
         _mallaSueloActual = hits[0].object.name;
         return hits[0].point.y;
       }
+      _mallaSueloActual = null;
       return AUTO.y;
     }
 
@@ -2033,14 +2515,18 @@
           malla.material.needsUpdate = true;
         }
 
-        const mallaAsfalto = _mallasSuelo.find((m) => m.name === 'Mapa');
-        const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
-        crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
-        crearColinasInstanciadas(mallaTierraExt);
-
         const margenCaja = Math.max(4, (MEDIO_LARGO + MARGEN_PARED) + VEL_MAX * 0.05);
         for (const obs of _mallasObstaculos) {
           obs.userData.caja = new THREE.Box3().setFromObject(obs).expandByScalar(margenCaja);
+        }
+
+        try {
+          const mallaAsfalto = _mallasSuelo.find((m) => m.name === 'Mapa');
+          const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
+          crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
+          crearColinasInstanciadas(mallaTierraExt);
+        } catch (e) {
+          console.warn(e);
         }
         if (modelo) {
           AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
@@ -2136,8 +2622,31 @@
     const _vecDir = new THREE.Vector3();
 
     function actualizarFisica(dt) {
+      const prevX = AUTO.x;
       AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
+
+      if (_largando) {
+        AUTO.vel = 0;
+        return;
+      }
+      if (carreraTerminada) {
+        AUTO.vel *= Math.pow(0.92, dt * 60);
+        if (Math.abs(AUTO.vel) < 0.5) AUTO.vel = 0;
+        return;
+      }
       const enAsfalto = _mallaSueloActual === 'Mapa';
+      const enPasto = _mallaSueloActual === 'tierra' || _mallaSueloActual === 'Tierra';
+
+      if (!carreraTerminada) {
+        _tiempoCarrera += dt * (enPasto ? 2 : 1);
+        if (enPasto) _penalizacionSeg += dt;
+      }
+
+      if (enPasto !== _hudEnPastoPrev) {
+        hudTiempo.classList.toggle('penalizando', enPasto);
+        _hudEnPastoPrev = enPasto;
+      }
+
       const factorAcel = enAsfalto ? 1 : ACEL_FUERA;
       const factorGiro = enAsfalto ? 1 : GIRO_FUERA;
       const friccionActual = FRICCION + (enAsfalto ? 0 : FRICCION_FUERA);
@@ -2258,7 +2767,14 @@
             if (penetracion > 0) {
               AUTO.x += _normalPared.x * penetracion;
               AUTO.z += _normalPared.z * penetracion;
-              if (r.frente) AUTO.vel *= -REBOTE;
+              if (r.frente) {
+                const t = performance.now();
+                if (Math.abs(AUTO.vel) > 8 && navigator.vibrate && t - _tUltimaVib > 400) {
+                  navigator.vibrate(40);
+                  _tUltimaVib = t;
+                }
+                AUTO.vel *= -REBOTE;
+              }
             }
           }
         }
@@ -2269,6 +2785,49 @@
       if (AUTO.x < -LIMITE_MUNDO) { AUTO.x = -LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
       if (AUTO.z > LIMITE_MUNDO) { AUTO.z = LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
       if (AUTO.z < -LIMITE_MUNDO) { AUTO.z = -LIMITE_MUNDO; AUTO.vel *= -REBOTE; }
+
+      /* -- Checkpoints y Línea de Meta (3 vueltas) ------------ */
+      if (!carreraTerminada) {
+        let metaCruzada = false;
+        if (siguienteCheckpoint < CHECKPOINTS.length) {
+          const cp = CHECKPOINTS[siguienteCheckpoint];
+          const dxCp = AUTO.x - cp.x;
+          const dzCp = AUTO.z - cp.z;
+          if (dxCp * dxCp + dzCp * dzCp <= RADIO_CP_SQ) {
+            siguienteCheckpoint++;
+            console.log('checkpoint', siguienteCheckpoint, 'vuelta', vuelta);
+          }
+        } else if (
+          siguienteCheckpoint === 3 &&
+          prevX >= 151.5 &&
+          AUTO.x < 151.5 &&
+          Math.abs(AUTO.z - 109.8) < 12
+        ) {
+          metaCruzada = true;
+          const tiempoVuelta = _tiempoCarrera - _tiempoInicioVuelta;
+          tiemposVuelta.push(tiempoVuelta);
+          _tiempoInicioVuelta = _tiempoCarrera;
+          console.log('meta cruzada — vuelta', vuelta, 'tiempo:', tiempoVuelta.toFixed(2) + 's');
+          vuelta++;
+          siguienteCheckpoint = 0;
+          if (vuelta > 3) {
+            finalizarCarrera();
+          } else {
+            hudVuelta.textContent = `${vuelta}/3`;
+          }
+        }
+        if (
+          !metaCruzada &&
+          _tiempoCarrera > 5 &&
+          siguienteCheckpoint < 3 &&
+          prevX >= 151.5 &&
+          AUTO.x < 151.5 &&
+          Math.abs(AUTO.z - 109.8) < 12
+        ) {
+          siguienteCheckpoint = 0;
+          mostrarAvisoCheckpointPerdido();
+        }
+      }
     }
 
     // Variable auxiliar para el input analógico del giroscopio
