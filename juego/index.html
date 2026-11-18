@@ -1582,6 +1582,7 @@
     // Spawn sobre la recta (coordenadas PRE-escala de pista.glb)
     const SPAWN_X = 50.5 * FACTOR_MUNDO;
     const SPAWN_Z = -31.0 * FACTOR_MUNDO;
+    const Z_CHORD = -25.65 * FACTOR_MUNDO; // tramo recto interior superior (-27.33 a -23.97 en modelo)
     const SPAWN_ANG = Math.PI / 2; // mirando a lo largo de la recta (hacia -X)
 
     /* =========================================================
@@ -2444,7 +2445,7 @@
       escena.add(instColinas);
     }
 
-    function crearLineaMeta() {
+    function crearLineaMeta(zMeta) {
       const cols = 2;
       const filas = 12;
       const tamCelda = 16;
@@ -2475,12 +2476,12 @@
         polygonOffsetUnits: -1,
       });
 
-      const ySueloMeta = alturaSueloEn(SPAWN_X, SPAWN_Z);
+      const ySueloMeta = alturaSueloEn(SPAWN_X, zMeta);
       const yMeta = (Number.isFinite(ySueloMeta) ? ySueloMeta : 0) + 0.05;
 
       const mallaMeta = new THREE.Mesh(geo, mat);
       mallaMeta.rotation.x = -Math.PI / 2;
-      mallaMeta.position.set(SPAWN_X, yMeta, SPAWN_Z);
+      mallaMeta.position.set(SPAWN_X, yMeta, zMeta);
       escena.add(mallaMeta);
     }
 
@@ -2565,7 +2566,8 @@
           const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
           crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
           crearColinasInstanciadas(mallaTierraExt);
-          crearLineaMeta();
+          crearLineaMeta(SPAWN_Z);
+          crearLineaMeta(Z_CHORD);
         } catch (e) {
           console.warn(e);
         }
@@ -2830,6 +2832,7 @@
       /* -- Checkpoints y Línea de Meta (3 vueltas) ------------ */
       if (!carreraTerminada) {
         let metaCruzada = false;
+        const zMetaActual = Z_CHORD;
         if (siguienteCheckpoint < CHECKPOINTS.length) {
           const cp = CHECKPOINTS[siguienteCheckpoint];
           const dxCp = AUTO.x - cp.x;
@@ -2842,7 +2845,7 @@
           siguienteCheckpoint === 3 &&
           prevX >= SPAWN_X &&
           AUTO.x < SPAWN_X &&
-          Math.abs(AUTO.z - SPAWN_Z) < 12
+          Math.abs(AUTO.z - zMetaActual) < 12
         ) {
           metaCruzada = true;
           const tiempoVuelta = _tiempoCarrera - _tiempoInicioVuelta;
@@ -2863,7 +2866,7 @@
           siguienteCheckpoint < 3 &&
           prevX >= SPAWN_X &&
           AUTO.x < SPAWN_X &&
-          Math.abs(AUTO.z - SPAWN_Z) < 12
+          Math.abs(AUTO.z - zMetaActual) < 12
         ) {
           siguienteCheckpoint = 0;
           mostrarAvisoCheckpointPerdido();
