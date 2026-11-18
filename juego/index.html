@@ -140,8 +140,9 @@
       z-index: 15;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 0.5rem;
       padding: 1.25rem 1rem 1.5rem;
       pointer-events: none;
     }
@@ -157,6 +158,9 @@
       display: flex;
       align-items: center;
       gap: 1.25rem;
+      align-self: flex-start;
+      width: auto;
+      max-width: max-content;
       pointer-events: all;
     }
 
@@ -264,6 +268,7 @@
     }
 
     .garage-hint {
+      align-self: flex-start;
       font-size: 0.65rem;
       color: var(--suave);
       letter-spacing: 0.1em;
@@ -275,15 +280,18 @@
     .garage-inferior {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       gap: 0.75rem;
       width: 100%;
-      max-width: 360px;
+      max-width: none;
+      margin-top: auto;
       pointer-events: all;
     }
 
     .garage-stats {
+      align-self: flex-start;
       width: 100%;
+      max-width: 360px;
       background: rgba(20, 20, 20, 0.9);
       border: 1px solid var(--linea);
       padding: 0.65rem 0.9rem;
@@ -330,20 +338,20 @@
     .garage-acciones {
       display: flex;
       align-items: stretch;
-      justify-content: center;
+      justify-content: space-between;
       gap: 0.65rem;
       width: 100%;
     }
 
     .garage-acciones .btn-menu {
-      flex: 1 1 0;
+      min-width: 7rem;
       width: auto;
     }
 
     /* ---- Botón EMPEZAR ------------------------------------ */
     #btnEmpezar {
       pointer-events: all;
-      flex: 1;
+      min-width: 7rem;
       font: inherit;
       font-size: 1.1rem;
       font-weight: 800;
@@ -3271,8 +3279,8 @@
         }
         modelo.rotation.y = _giroBase + _giroGarage + _giroPres;
         if (grupoGarage && grupoGarage.visible) {
-          camara.position.set(AUTO.x + 8.5, AUTO.y + 3.4, AUTO.z + 8.5);
-          camara.lookAt(AUTO.x, AUTO.y + 1.0, AUTO.z);
+          camara.position.set(AUTO.x + 3.6, AUTO.y + 2.1, AUTO.z + 3.6);
+          camara.lookAt(AUTO.x, AUTO.y + 0.85, AUTO.z);
         }
       }
 
