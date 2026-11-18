@@ -5,7 +5,9 @@
    ========================================================== */
 
 /* --- Reset ------------------------------------------------- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -13,13 +15,13 @@
 
 /* --- Tokens ------------------------------------------------ */
 :root {
-  --bg:        #0d0d0d;
-  --panel:     #141414;
-  --line:      #2a2a2a;
-  --text:      #f2f2f2;
-  --muted:     #9a9a9a;
-  --accent:    #e30613;
-  --font:      system-ui, 'Inter', sans-serif;
+  --bg: #0d0d0d;
+  --panel: #141414;
+  --line: #2a2a2a;
+  --text: #f2f2f2;
+  --muted: #9a9a9a;
+  --accent: #e30613;
+  --font: system-ui, 'Inter', sans-serif;
 }
 
 /* --- Base -------------------------------------------------- */
@@ -225,7 +227,9 @@ model-viewer {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loader-text {

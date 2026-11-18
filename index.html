@@ -181,7 +181,7 @@
             transition: color .15s, background .15s;
         }
 
-        .escenarios button + button {
+        .escenarios button+button {
             border-left: 1px solid var(--linea);
         }
 
@@ -236,7 +236,7 @@
             transition: color .15s, background .15s;
         }
 
-        .camara button + button {
+        .camara button+button {
             border-left: 1px solid var(--linea);
         }
 
@@ -333,18 +333,18 @@
     <script>
         (function () {
             'use strict';
-            var mv         = document.getElementById('mv');
-            var cargando   = document.getElementById('cargando');
-            var fallo      = document.getElementById('fallo');
-            var barra      = document.getElementById('barra');
-            var pct        = document.getElementById('pct');
-            var btn3d      = document.getElementById('btn3d');
-            var btnAR      = document.getElementById('btnAR');
-            var aviso      = document.getElementById('aviso');
+            var mv = document.getElementById('mv');
+            var cargando = document.getElementById('cargando');
+            var fallo = document.getElementById('fallo');
+            var barra = document.getElementById('barra');
+            var pct = document.getElementById('pct');
+            var btn3d = document.getElementById('btn3d');
+            var btnAR = document.getElementById('btnAR');
+            var aviso = document.getElementById('aviso');
             var reintentar = document.getElementById('reintentar');
-            var escena     = document.getElementById('escena');
-            var fondoSi    = document.getElementById('fondoSi');
-            var fondoNo    = document.getElementById('fondoNo');
+            var escena = document.getElementById('escena');
+            var fondoSi = document.getElementById('fondoSi');
+            var fondoNo = document.getElementById('fondoNo');
 
             /* ---- Carga ------------------------------------ */
             mv.addEventListener('progress', function (e) {
@@ -367,7 +367,7 @@
 
             /* ---- Modos 3D / AR ---------------------------- */
             btn3d.addEventListener('click', function () {
-                btn3d.classList.add('activo');   btnAR.classList.remove('activo');
+                btn3d.classList.add('activo'); btnAR.classList.remove('activo');
                 btn3d.setAttribute('aria-pressed', 'true');
                 btnAR.setAttribute('aria-pressed', 'false');
                 aviso.classList.add('oculto');
@@ -375,7 +375,7 @@
             });
 
             btnAR.addEventListener('click', function () {
-                btnAR.classList.add('activo');   btn3d.classList.remove('activo');
+                btnAR.classList.add('activo'); btn3d.classList.remove('activo');
                 btnAR.setAttribute('aria-pressed', 'true');
                 btn3d.setAttribute('aria-pressed', 'false');
                 if (mv.canActivateAR) {
@@ -411,15 +411,15 @@
 
             /* ---- Controles de cámara ---------------------- */
             var PASO_GIRO = 15;
-            var PASO_FOV  = 5;
-            var FOV_MIN   = 10;
-            var FOV_MAX   = 90;
+            var PASO_FOV = 5;
+            var FOV_MIN = 10;
+            var FOV_MAX = 90;
 
             function orbitActual() {
                 var raw = mv.getCameraOrbit();
                 return {
-                    theta:  raw.theta  * (180 / Math.PI),
-                    phi:    raw.phi    * (180 / Math.PI),
+                    theta: raw.theta * (180 / Math.PI),
+                    phi: raw.phi * (180 / Math.PI),
                     radius: raw.radius
                 };
             }
@@ -452,4 +452,4 @@
     </script>
 </body>
 
-</html>
+</html>S
