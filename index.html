@@ -1,455 +1,312 @@
-<!DOCTYPE html>
-<html lang="es-AR">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Auto F1 · Visor 3D y AR</title>
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-    <style>
-        :root {
-            --fondo: #0d0d0d;
-            --panel: #141414;
-            --linea: #2a2a2a;
-            --texto: #f2f2f2;
-            --suave: #9a9a9a;
-            --acento: #e30613;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-            background: var(--fondo);
-            color: var(--texto);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        header {
-            padding: 24px 16px 8px;
-            max-width: 960px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        .etiqueta {
-            font-size: 12px;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            color: var(--acento);
-            margin-bottom: 8px;
-        }
-
-        h1 {
-            font-size: 26px;
-            letter-spacing: -.01em;
-        }
-
-        main {
-            flex: 1;
-            width: 100%;
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 16px;
-        }
-
-        .escena {
-            position: relative;
-            background-color: var(--panel);
-            border: 1px solid var(--linea);
-            height: 55vh;
-            min-height: 320px;
-            transition: background-color .2s, border-color .2s;
-        }
-
-        model-viewer {
-            display: block;
-            width: 100%;
-            height: 100%;
-            --progress-bar-height: 0px;
-            --poster-color: transparent;
-        }
-
-        .capa {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 16px;
-            text-align: center;
-            background: var(--panel);
-        }
-
-        .capa p {
-            color: var(--suave);
-            line-height: 1.5;
-        }
-
-        .barra {
-            width: 60%;
-            max-width: 280px;
-            height: 4px;
-            background: var(--linea);
-        }
-
-        #barra {
-            height: 100%;
-            width: 0;
-            background: var(--acento);
-        }
-
-        #reintentar {
-            font: inherit;
-            font-weight: 600;
-            padding: 12px 20px;
-            border: 1px solid var(--acento);
-            background: transparent;
-            color: var(--texto);
-            cursor: pointer;
-        }
-
-        .modos {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            margin-top: 16px;
-            border: 1px solid var(--linea);
-        }
-
-        .modos button {
-            font: inherit;
-            font-weight: 600;
-            font-size: 16px;
-            padding: 16px;
-            border: 0;
-            border-radius: 0;
-            cursor: pointer;
-            background: var(--panel);
-            color: var(--texto);
-        }
-
-        .modos button+button {
-            border-left: 1px solid var(--linea);
-        }
-
-        .modos button.activo {
-            background: var(--acento);
-            color: #fff;
-        }
-
-        .modos button:focus-visible,
-        #reintentar:focus-visible {
-            outline: 2px solid var(--texto);
-            outline-offset: -4px;
-        }
-
-        .aviso {
-            margin-top: 12px;
-            padding: 12px;
-            border: 1px solid var(--acento);
-            line-height: 1.5;
-        }
-
-        /* --- Interruptor de fondo --------------------------- */
-        .escenarios {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            margin-top: 8px;
-            border: 1px solid var(--linea);
-        }
-
-        .escenarios button {
-            font: inherit;
-            font-weight: 600;
-            font-size: 13px;
-            padding: 10px 8px;
-            border: 0;
-            border-radius: 0;
-            cursor: pointer;
-            background: var(--panel);
-            color: var(--suave);
-            letter-spacing: .05em;
-            text-transform: uppercase;
-            transition: color .15s, background .15s;
-        }
-
-        .escenarios button+button {
-            border-left: 1px solid var(--linea);
-        }
-
-        .escenarios button.activo {
-            background: var(--acento);
-            color: #fff;
-        }
-
-        .escenarios button:focus-visible {
-            outline: 2px solid var(--texto);
-            outline-offset: -4px;
-        }
-
-        /* Fondo del contenedor según data-fondo */
-        .escena[data-fondo="si"] {
-            background-color: var(--panel);
-            border-color: var(--linea);
-        }
-
-        .escena[data-fondo="no"] {
-            background-color: transparent;
-            border-color: transparent;
-        }
-
-        .nota {
-            margin-top: 8px;
-            font-size: 12px;
-            line-height: 1.5;
-            color: var(--suave);
-        }
-
-        /* --- Controles de cámara --------------------------- */
-        .camara {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            margin-top: 8px;
-            border: 1px solid var(--linea);
-        }
-
-        .camara button {
-            font: inherit;
-            font-weight: 600;
-            font-size: 13px;
-            padding: 10px 4px;
-            border: 0;
-            border-radius: 0;
-            cursor: pointer;
-            background: var(--panel);
-            color: var(--suave);
-            letter-spacing: .03em;
-            text-align: center;
-            transition: color .15s, background .15s;
-        }
-
-        .camara button+button {
-            border-left: 1px solid var(--linea);
-        }
-
-        .camara button:hover,
-        .camara button:active {
-            background: #1e1e1e;
-            color: var(--texto);
-        }
-
-        .camara button:focus-visible {
-            outline: 2px solid var(--texto);
-            outline-offset: -4px;
-        }
-
-        footer {
-            border-top: 1px solid var(--linea);
-            padding: 16px;
-            text-align: center;
-            color: var(--suave);
-            font-size: 13px;
-        }
-
-        .oculto {
-            display: none !important;
-        }
-
-        @media (min-width:720px) {
-            h1 {
-                font-size: 38px;
-            }
-
-            .escena {
-                height: 65vh;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <header>
-        <p class="etiqueta">Programación Web con IA</p>
-        <h1>Auto F1 · Visor 3D y AR</h1>
-    </header>
-
-    <main>
-        <div class="escena" id="escena" data-fondo="si">
-            <model-viewer id="mv" src="auto.glb" alt="Modelo 3D de un auto de Fórmula 1" camera-controls auto-rotate
-                touch-action="pan-y" shadow-intensity="1" shadow-softness="1" exposure="1" environment-image="neutral"
-                camera-orbit="35deg 75deg auto" ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto"
-                loading="eager">
-            </model-viewer>
-
-            <div id="cargando" class="capa">
-                <p>Cargando modelo… <span id="pct">0%</span></p>
-                <div class="barra">
-                    <div id="barra"></div>
-                </div>
-            </div>
-
-            <div id="fallo" class="capa oculto">
-                <p>No se pudo cargar el modelo.</p>
-                <button id="reintentar" type="button">Reintentar</button>
-            </div>
-        </div>
-
-        <div class="modos">
-            <button id="btn3d" class="activo" type="button" aria-pressed="true">Ver en 3D</button>
-            <button id="btnAR" type="button" aria-pressed="false">Ver en AR</button>
-        </div>
-
-        <p id="aviso" class="aviso oculto" role="status"></p>
-
-        <!-- Interruptor de fondo -->
-        <div class="escenarios" id="escenarios" role="group" aria-label="Fondo de la escena">
-            <button type="button" id="fondoSi" class="activo" aria-pressed="true">Con fondo</button>
-            <button type="button" id="fondoNo" aria-pressed="false">Sin fondo</button>
-        </div>
-
-        <p class="nota">El fondo se aplica al visor 3D. En AR el fondo es siempre la cámara del celular.</p>
-
-        <!-- Controles de cámara -->
-        <div class="camara" role="group" aria-label="Controles de cámara">
-            <button type="button" id="camIzq" aria-label="Girar izquierda">&#8592; Izquierda</button>
-            <button type="button" id="camDer" aria-label="Girar derecha">Derecha &#8594;</button>
-            <button type="button" id="camAcercar" aria-label="Acercar">&#43; Acercar</button>
-            <button type="button" id="camAlejar" aria-label="Alejar">&#8722; Alejar</button>
-        </div>
-    </main>
-
-    <footer>
-        <p>Máximo Beneventano · Programación Web con IA · 2026</p>
-    </footer>
-
-    <script>
-        (function () {
-            'use strict';
-            var mv = document.getElementById('mv');
-            var cargando = document.getElementById('cargando');
-            var fallo = document.getElementById('fallo');
-            var barra = document.getElementById('barra');
-            var pct = document.getElementById('pct');
-            var btn3d = document.getElementById('btn3d');
-            var btnAR = document.getElementById('btnAR');
-            var aviso = document.getElementById('aviso');
-            var reintentar = document.getElementById('reintentar');
-            var escena = document.getElementById('escena');
-            var fondoSi = document.getElementById('fondoSi');
-            var fondoNo = document.getElementById('fondoNo');
-
-            /* ---- Carga ------------------------------------ */
-            mv.addEventListener('progress', function (e) {
-                var p = Math.round(e.detail.totalProgress * 100);
-                barra.style.width = p + '%';
-                pct.textContent = p + '%';
-            });
-
-            mv.addEventListener('load', function () {
-                cargando.classList.add('oculto');
-                fallo.classList.add('oculto');
-            });
-
-            mv.addEventListener('error', function () {
-                cargando.classList.add('oculto');
-                fallo.classList.remove('oculto');
-            });
-
-            reintentar.addEventListener('click', function () { location.reload(); });
-
-            /* ---- Modos 3D / AR ---------------------------- */
-            btn3d.addEventListener('click', function () {
-                btn3d.classList.add('activo'); btnAR.classList.remove('activo');
-                btn3d.setAttribute('aria-pressed', 'true');
-                btnAR.setAttribute('aria-pressed', 'false');
-                aviso.classList.add('oculto');
-                mv.autoRotate = true;
-            });
-
-            btnAR.addEventListener('click', function () {
-                btnAR.classList.add('activo'); btn3d.classList.remove('activo');
-                btnAR.setAttribute('aria-pressed', 'true');
-                btn3d.setAttribute('aria-pressed', 'false');
-                if (mv.canActivateAR) {
-                    aviso.classList.add('oculto');
-                    mv.activateAR();
-                } else {
-                    aviso.textContent = 'Este dispositivo o navegador no soporta realidad aumentada. Probá desde un celular con Chrome en Android o Safari en iPhone.';
-                    aviso.classList.remove('oculto');
-                }
-            });
-
-            mv.addEventListener('ar-status', function (e) {
-                if (e.detail.status === 'not-presenting' || e.detail.status === 'failed') {
-                    btn3d.classList.add('activo'); btnAR.classList.remove('activo');
-                    btn3d.setAttribute('aria-pressed', 'true');
-                    btnAR.setAttribute('aria-pressed', 'false');
-                    mv.autoRotate = true;
-                }
-            });
-
-            /* ---- Interruptor de fondo --------------------- */
-            function setFondo(valor) {
-                var conFondo = (valor === 'si');
-                escena.setAttribute('data-fondo', valor);
-                fondoSi.classList.toggle('activo', conFondo);
-                fondoNo.classList.toggle('activo', !conFondo);
-                fondoSi.setAttribute('aria-pressed', String(conFondo));
-                fondoNo.setAttribute('aria-pressed', String(!conFondo));
-            }
-
-            fondoSi.addEventListener('click', function () { setFondo('si'); });
-            fondoNo.addEventListener('click', function () { setFondo('no'); });
-
-            /* ---- Controles de cámara ---------------------- */
-            var PASO_GIRO = 15;
-            var PASO_FOV = 5;
-            var FOV_MIN = 10;
-            var FOV_MAX = 90;
-
-            function orbitActual() {
-                var raw = mv.getCameraOrbit();
-                return {
-                    theta: raw.theta * (180 / Math.PI),
-                    phi: raw.phi * (180 / Math.PI),
-                    radius: raw.radius
-                };
-            }
-
-            function aplicarOrbit(theta, phi, radius) {
-                mv.cameraOrbit = theta + 'deg ' + phi + 'deg ' + radius + 'm';
-            }
-
-            document.getElementById('camIzq').addEventListener('click', function () {
-                var o = orbitActual();
-                aplicarOrbit(o.theta - PASO_GIRO, o.phi, o.radius);
-            });
-
-            document.getElementById('camDer').addEventListener('click', function () {
-                var o = orbitActual();
-                aplicarOrbit(o.theta + PASO_GIRO, o.phi, o.radius);
-            });
-
-            document.getElementById('camAcercar').addEventListener('click', function () {
-                var fov = parseFloat(mv.fieldOfView) - PASO_FOV;
-                mv.fieldOfView = Math.max(FOV_MIN, fov) + 'deg';
-            });
-
-            document.getElementById('camAlejar').addEventListener('click', function () {
-                var fov = parseFloat(mv.fieldOfView) + PASO_FOV;
-                mv.fieldOfView = Math.min(FOV_MAX, fov) + 'deg';
-            });
-
-        })();
-    </script>
-</body>
-
-</html>
+/* ==========================================================
+   Auto F1 — styles.css
+   Mobile-first · Estética automotriz técnica
+   Paleta: #0d0d0d / #141414 / #2a2a2a / #f2f2f2 / #9a9a9a / #e30613
+   ========================================================== */
+
+/* --- Reset ------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Tokens ------------------------------------------------ */
+:root {
+  --bg: #0d0d0d;
+  --panel: #141414;
+  --line: #2a2a2a;
+  --text: #f2f2f2;
+  --muted: #9a9a9a;
+  --accent: #e30613;
+  --font: system-ui, 'Inter', sans-serif;
+}
+
+/* --- Base -------------------------------------------------- */
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font);
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus visible global — contraste AA sobre fondo oscuro */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* --- Header ----------------------------------------------- */
+.site-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background-color: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.header-brand {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.header-sub {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- Main -------------------------------------------------- */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.125rem 1rem 1.5rem;
+}
+
+/* --- Controls --------------------------------------------- */
+.controls {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+/* --- Botones ----------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.7rem 1.25rem;
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background-color: var(--panel);
+  color: var(--muted);
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background-color: var(--panel);
+}
+
+.btn--active:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Variante outline para el botón Reintentar */
+.btn--outline {
+  flex: none;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.btn--outline:hover {
+  border-color: var(--muted);
+}
+
+/* --- Notice AR no soportado -------------------------------- */
+.notice {
+  width: 100%;
+  max-width: 600px;
+  padding: 0.875rem 1rem;
+  border-left: 2px solid var(--accent);
+  background-color: var(--panel);
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.notice strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- Viewer wrap ------------------------------------------ */
+.viewer-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  /* 4:3 en mobile, 16:9 desde 600 px */
+  aspect-ratio: 4 / 3;
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+@media (min-width: 600px) {
+  .viewer-wrap {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+/* --- model-viewer ----------------------------------------- */
+model-viewer {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  /* Barra de progreso interna del componente — la desactivamos */
+  --progress-bar-height: 0px;
+}
+
+/* --- Barra de progreso propia ----------------------------- */
+.progress-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--line);
+  z-index: 30;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background-color: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* --- Loader ----------------------------------------------- */
+.loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background-color: var(--panel);
+  z-index: 20;
+}
+
+.loader-ring {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-text {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- Panel de error --------------------------------------- */
+.error-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 1.5rem;
+  background-color: var(--panel);
+  text-align: center;
+  z-index: 20;
+}
+
+.error-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.error-body {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 28rem;
+}
+
+/* --- Footer ----------------------------------------------- */
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem 0.75rem;
+  padding: 0.875rem 1rem;
+  background-color: var(--panel);
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.footer-sep {
+  color: var(--line);
+}
+
+/* --- Responsive desktop ----------------------------------- */
+@media (min-width: 768px) {
+  .site-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .header-brand {
+    font-size: 1.0625rem;
+  }
+
+  .main {
+    padding: 1.5rem 1.5rem 2rem;
+  }
+
+  .controls {
+    width: auto;
+  }
+
+  .btn {
+    flex: none;
+    padding: 0.7rem 1.75rem;
+  }
+}
