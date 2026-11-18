@@ -425,15 +425,13 @@
       padding-bottom: 0;
     }
 
-    #menuOverlay .menu-subtitulo {
-      color: var(--verde);
-      margin-bottom: 0.1rem;
-    }
-
-    #menuOverlay .menu-titulo {
-      font-size: clamp(1.35rem, 5vh, 2.1rem);
-      line-height: 1.05;
-      letter-spacing: 0.1em;
+    #menuOverlay .menu-logo {
+      display: block;
+      max-width: min(240px, 100%);
+      max-height: clamp(38px, 13vh, 68px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
     }
 
     #menuOverlay .menu-botones {
@@ -856,8 +854,7 @@
   <div id="menuOverlay" class="pantalla-menu oculto" role="dialog" aria-label="Menú principal">
     <div class="menu-caja">
       <div class="menu-encabezado">
-        <span class="menu-subtitulo">Simulador 3D</span>
-        <h1 class="menu-titulo">Auto F1</h1>
+        <img src="./logo.png" alt="Vértice Motorsport" class="menu-logo" />
       </div>
       <div class="menu-botones">
         <button type="button" class="btn-menu primario" id="btnMenuPrueba">PRUEBA</button>
@@ -1609,6 +1606,7 @@
     const _mallasSuelo = [];
     let _mallaSueloActual = null;
     const _mallasObstaculos = [];
+    const _obstaculosCercanos = [];
     const _raycasterPared = new THREE.Raycaster();
     _raycasterPared.far = MARGEN_PARED;
     const _origenPared = new THREE.Vector3();
@@ -1639,9 +1637,10 @@
         pista.position.y -= cajaPista.min.y;
         pista.traverse((nodo) => {
           if (nodo.isMesh) {
-            nodo.castShadow = true;
-            nodo.receiveShadow = true;
-            if (['Mapa', 'tierra', 'Tierra'].includes(nodo.name)) {
+            const esSuelo = ['Mapa', 'tierra', 'Tierra'].includes(nodo.name);
+            nodo.castShadow = false;
+            nodo.receiveShadow = esSuelo;
+            if (esSuelo) {
               _mallasSuelo.push(nodo);
             } else if (
               nodo.name.startsWith('Fence') ||
@@ -1659,6 +1658,10 @@
         }
         escena.add(pista);
         pista.updateMatrixWorld(true);
+        const margenCaja = Math.max(4, (MEDIO_LARGO + MARGEN_PARED) + VEL_MAX * 0.05);
+        for (const obs of _mallasObstaculos) {
+          obs.userData.caja = new THREE.Box3().setFromObject(obs).expandByScalar(margenCaja);
+        }
         if (modelo) {
           AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
           modelo.position.y = AUTO.y;
@@ -1829,15 +1832,25 @@
       const dirZ = Math.cos(AUTO.angulo);  // frente del auto en Z
 
       const desplazamiento = Math.abs(AUTO.vel) * dt;
-      const pasos = Math.max(1, Math.ceil(desplazamiento / 0.25));
+      const pasos = Math.min(3, Math.max(1, Math.ceil(desplazamiento / 0.25)));
       const dtPaso = dt / pasos;
+
+      // Filtrar una vez por frame solo los obstáculos cercanos al auto
+      _obstaculosCercanos.length = 0;
+      for (let k = 0; k < _mallasObstaculos.length; k++) {
+        const obs = _mallasObstaculos[k];
+        const c = obs.userData.caja;
+        if (AUTO.x >= c.min.x && AUTO.x <= c.max.x && AUTO.z >= c.min.z && AUTO.z <= c.max.z) {
+          _obstaculosCercanos.push(obs);
+        }
+      }
 
       for (let i = 0; i < pasos; i++) {
         AUTO.x += -dirX * AUTO.vel * dtPaso;
         AUTO.z += -dirZ * AUTO.vel * dtPaso;
 
         /* -- Rebote contra vallas y neumáticos (raycast horizontal) - */
-        if (_mallasObstaculos.length > 0) {
+        if (_obstaculosCercanos.length > 0) {
           const signoVel = AUTO.vel >= 0 ? 1 : -1;
           const avanX = -dirX * signoVel;   // hacia donde avanza el auto
           const avanZ = -dirZ * signoVel;
@@ -1855,7 +1868,7 @@
             _dirPared.set(r.dx, 0, r.dz);
             _raycasterPared.set(_origenPared, _dirPared);
             _raycasterPared.far = r.alcance;
-            const hits = _raycasterPared.intersectObjects(_mallasObstaculos, false);
+            const hits = _raycasterPared.intersectObjects(_obstaculosCercanos, false);
             if (hits.length === 0 || !hits[0].face) continue;
 
             _normalPared.copy(hits[0].face.normal).transformDirection(hits[0].object.matrixWorld);
