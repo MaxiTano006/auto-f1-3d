@@ -532,7 +532,7 @@
       50,
       window.innerWidth / window.innerHeight,
       0.1,
-      1000
+      3000
     );
     camara.position.set(0, 8, 15);
     camara.lookAt(0, 0.5, 0);
@@ -565,10 +565,10 @@
     /* =========================================================
        PISO 200 × 200 m (escalado por FACTOR_MUNDO)
        ========================================================= */
-    const FACTOR_MUNDO = 2;
+    const FACTOR_MUNDO = 3;
 
     const piso = new THREE.Mesh(
-      new THREE.PlaneGeometry(200 * FACTOR_MUNDO, 200 * FACTOR_MUNDO),
+      new THREE.PlaneGeometry(800 * FACTOR_MUNDO, 800 * FACTOR_MUNDO),
       new THREE.MeshLambertMaterial({ color: 0x141414 })
     );
     piso.rotation.x = -Math.PI / 2;
@@ -611,7 +611,7 @@
     const ACEL_FUERA = 0.45;
     const GIRO_FUERA = 0.7;
     const FRICCION_FUERA = 14;
-    const LIMITE_MUNDO = 90 * FACTOR_MUNDO; // m desde el centro (zona segura)
+    const LIMITE_MUNDO = 400 * FACTOR_MUNDO; // m desde el centro (zona segura)
     const REBOTE = 0.3;    // factor de rebote
     const MEDIO_LARGO = 2.75;   // el auto mide 5.5 m
     const MEDIO_ANCHO = 1.1;    // aproximado
