@@ -1016,7 +1016,7 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x0d0d0d);
+    renderer.setClearColor(0xcfe4f7);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
@@ -1025,7 +1025,22 @@
        ESCENA
        ========================================================= */
     const escena = new THREE.Scene();
-    escena.background = new THREE.Color(0x0d0d0d);
+
+    // Cielo con degradé vertical y niebla coherente con el horizonte (camara.far = 3000)
+    const _canvasCielo = document.createElement('canvas');
+    _canvasCielo.width = 1;
+    _canvasCielo.height = 256;
+    const _ctxCielo = _canvasCielo.getContext('2d');
+    const _gradCielo = _ctxCielo.createLinearGradient(0, 0, 0, 256);
+    _gradCielo.addColorStop(0.0, '#3a7bd5');
+    _gradCielo.addColorStop(0.55, '#7eb3e6');
+    _gradCielo.addColorStop(1.0, '#cfe4f7');
+    _ctxCielo.fillStyle = _gradCielo;
+    _ctxCielo.fillRect(0, 0, 1, 256);
+    const _texCielo = new THREE.CanvasTexture(_canvasCielo);
+    _texCielo.colorSpace = THREE.SRGBColorSpace;
+    escena.background = _texCielo;
+    escena.fog = new THREE.Fog(0xcfe4f7, 250, 1400);
 
     /* =========================================================
        CÁMARA
@@ -1046,7 +1061,7 @@
     /* =========================================================
        LUCES
        ========================================================= */
-    const luzHemi = new THREE.HemisphereLight(0xffffff, 0x222222, 1.5);
+    const luzHemi = new THREE.HemisphereLight(0x87ceeb, 0x4a5d3a, 1.5);
     escena.add(luzHemi);
 
     const luzDir = new THREE.DirectionalLight(0xffffff, 3);
@@ -1612,6 +1627,127 @@
     const _origenPared = new THREE.Vector3();
     const _dirPared = new THREE.Vector3();
     const _normalPared = new THREE.Vector3();
+    const TAM_BALDOSA = 14; // m por repetición de la textura de pasto
+
+    function crearTexturaPasto() {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#3f6a28';
+      ctx.fillRect(0, 0, 256, 256);
+
+      // Variación suave y briznas para que no se note el patrón al repetir
+      const tonos = ['#365c21', '#48772e', '#4f8233', '#31531e'];
+      for (let i = 0; i < 1800; i++) {
+        ctx.fillStyle = tonos[i % tonos.length];
+        const x = (Math.random() * 256) | 0;
+        const y = (Math.random() * 256) | 0;
+        ctx.fillRect(x, y, 2, 3);
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    function crearArbolesInstanciados(mallaAsfalto, mallaTierraExt) {
+      if (!mallaTierraExt) return;
+      const CANT_ARBOLES = 220;
+      const MARGEN_PISTA = 45; // m mínimos fuera del asfalto y vallas
+
+      // Caja de exclusión alrededor de todo el circuito
+      const cajaExclusion = new THREE.Box3();
+      if (mallaAsfalto) {
+        cajaExclusion.setFromObject(mallaAsfalto).expandByScalar(MARGEN_PISTA);
+      } else {
+        cajaExclusion.set(
+          new THREE.Vector3(-90, -10, -140),
+          new THREE.Vector3(400, 10, 160)
+        );
+      }
+
+      // Generador pseudoaleatorio determinista con semilla fija
+      let semilla = 20261118;
+      function rand() {
+        semilla = (semilla * 1664525 + 1013904223) >>> 0;
+        return semilla / 4294967296;
+      }
+
+      const geoTronco = new THREE.CylinderGeometry(0.45, 0.65, 3.2, 6);
+      geoTronco.translate(0, 1.6, 0);
+      const matTronco = new THREE.MeshLambertMaterial({ color: 0x5c3e26 });
+
+      const geoCopa = new THREE.ConeGeometry(2.8, 7.5, 6);
+      geoCopa.translate(0, 6.2, 0);
+      const matCopa = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+      const instTroncos = new THREE.InstancedMesh(geoTronco, matTronco, CANT_ARBOLES);
+      const instCopas = new THREE.InstancedMesh(geoCopa, matCopa, CANT_ARBOLES);
+      instTroncos.castShadow = false;
+      instTroncos.receiveShadow = false;
+      instTroncos.frustumCulled = false;
+      instCopas.castShadow = false;
+      instCopas.receiveShadow = false;
+      instCopas.frustumCulled = false;
+
+      const dummy = new THREE.Object3D();
+      const coloresCopa = [
+        new THREE.Color(0x2d5a27),
+        new THREE.Color(0x35682d),
+        new THREE.Color(0x264d20),
+      ];
+
+      const rayArbol = new THREE.Raycaster();
+      const origArbol = new THREE.Vector3();
+      const centroX = (cajaExclusion.min.x + cajaExclusion.max.x) * 0.5;
+      const centroZ = (cajaExclusion.min.z + cajaExclusion.max.z) * 0.5;
+
+      let colocados = 0;
+      let intentos = 0;
+      while (colocados < CANT_ARBOLES && intentos < 3000) {
+        intentos++;
+        const x = centroX + (rand() - 0.5) * 1100;
+        const z = centroZ + (rand() - 0.5) * 900;
+
+        if (
+          x >= cajaExclusion.min.x && x <= cajaExclusion.max.x &&
+          z >= cajaExclusion.min.z && z <= cajaExclusion.max.z
+        ) {
+          continue;
+        }
+
+        origArbol.set(x, 50, z);
+        rayArbol.set(origArbol, _dirAbajo);
+        const hits = rayArbol.intersectObject(mallaTierraExt, false);
+        if (hits.length === 0) continue;
+
+        const escala = 0.85 + rand() * 0.65;
+        dummy.position.set(x, hits[0].point.y, z);
+        dummy.rotation.set(0, rand() * Math.PI * 2, 0);
+        dummy.scale.setScalar(escala);
+        dummy.updateMatrix();
+
+        const colorCopa = coloresCopa[Math.floor(rand() * coloresCopa.length)];
+        instTroncos.setMatrixAt(colocados, dummy.matrix);
+        instCopas.setMatrixAt(colocados, dummy.matrix);
+        instCopas.setColorAt(colocados, colorCopa);
+        colocados++;
+      }
+
+      instTroncos.count = colocados;
+      instCopas.count = colocados;
+      instTroncos.instanceMatrix.needsUpdate = true;
+      instCopas.instanceMatrix.needsUpdate = true;
+      if (instCopas.instanceColor) instCopas.instanceColor.needsUpdate = true;
+
+      escena.add(instTroncos);
+      escena.add(instCopas);
+      console.log('arboles:', colocados);
+    }
 
     function alturaSueloEn(x, z) {
       if (!pista) return 0;
@@ -1658,6 +1794,32 @@
         }
         escena.add(pista);
         pista.updateMatrixWorld(true);
+
+        // Aplicar textura de pasto y proyectar UVs en mundo (matrixWorld) sobre tierra y Tierra
+        const texPasto = crearTexturaPasto();
+        const _vMundo = new THREE.Vector3();
+        for (const malla of _mallasSuelo) {
+          if (malla.name !== 'tierra' && malla.name !== 'Tierra') continue;
+          const pos = malla.geometry.attributes.position;
+          if (pos) {
+            const arr = new Float32Array(pos.count * 2);
+            for (let i = 0; i < pos.count; i++) {
+              _vMundo.fromBufferAttribute(pos, i).applyMatrix4(malla.matrixWorld);
+              arr[i * 2] = _vMundo.x / TAM_BALDOSA;
+              arr[i * 2 + 1] = _vMundo.z / TAM_BALDOSA;
+            }
+            malla.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(arr, 2));
+          }
+          malla.material.map = texPasto;
+          malla.material.color.set(0xffffff);
+          malla.material.roughness = 0.95;
+          malla.material.needsUpdate = true;
+        }
+
+        const mallaAsfalto = _mallasSuelo.find((m) => m.name === 'Mapa');
+        const mallaTierraExt = _mallasSuelo.find((m) => m.name === 'Tierra');
+        crearArbolesInstanciados(mallaAsfalto, mallaTierraExt);
+
         const margenCaja = Math.max(4, (MEDIO_LARGO + MARGEN_PARED) + VEL_MAX * 0.05);
         for (const obs of _mallasObstaculos) {
           obs.userData.caja = new THREE.Box3().setFromObject(obs).expandByScalar(margenCaja);
