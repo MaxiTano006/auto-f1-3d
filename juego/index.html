@@ -400,7 +400,7 @@
           rgba(10, 12, 10, 0.28) 70%,
           rgba(10, 12, 10, 0.08) 100%
         ),
-        url('./fondo-menu.jpg');
+        url('./fondo-menu.png');
       background-size: cover;
       background-position: center right;
       background-repeat: no-repeat;
@@ -831,64 +831,6 @@
     #avisoSensor.oculto {
       display: none;
     }
-
-    /* ---- Controles táctiles ------------------------------- */
-    /*  IZQUIERDA / DERECHA: fila inferior izquierda
-        ACELERAR: inferior derecha (arriba en la esquina)
-        FRENO:    inferior derecha (abajo en la esquina)         */
-    .controles-tactiles {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      /* el contenedor no intercepta */
-      z-index: 10;
-    }
-
-    .btn-tactil {
-      position: absolute;
-      width: 70px;
-      height: 70px;
-      border: 1px solid rgba(242, 242, 242, 0.25);
-      border-radius: 0;
-      background: rgba(20, 20, 20, 0.45);
-      color: rgba(242, 242, 242, 0.75);
-      font: inherit;
-      font-size: 1.3rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      pointer-events: all;
-      /* cada botón sí recibe eventos */
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .btn-tactil:active {
-      background: rgba(227, 6, 19, 0.5);
-    }
-
-    /* Posiciones */
-    #tIzq {
-      bottom: 24px;
-      left: 16px;
-    }
-
-    #tDer {
-      bottom: 24px;
-      left: 102px;
-    }
-
-    #tAce {
-      bottom: 108px;
-      right: 16px;
-    }
-
-    #tFre {
-      bottom: 24px;
-      right: 16px;
-    }
   </style>
 </head>
 
@@ -960,8 +902,6 @@
       <div class="menu-cuerpo">
         <p><strong>Giroscopio (celular):</strong> al tocar EMPEZAR se calibra la posición neutral. Incliná a los lados
           para girar, hacia adelante para acelerar y hacia atrás para frenar o dar marcha atrás.</p>
-        <p><strong>Botones táctiles y teclado:</strong> podés usar en todo momento los botones en pantalla o las flechas
-          del teclado (<strong>&#8592; &#8594; &#8593; &#8595;</strong>).</p>
         <p><strong>Pista:</strong> mantenete sobre el asfalto para conservar la máxima velocidad y agarre.</p>
       </div>
       <button type="button" class="btn-menu" data-volver-menu>VOLVER</button>
@@ -1039,15 +979,7 @@
 
   <!-- Aviso sensor -->
   <div id="avisoSensor" class="oculto" role="status" aria-live="polite">
-    Giroscopio no disponible. Usá los botones.
-  </div>
-
-  <!-- Botones táctiles (siempre en DOM, ocultamos hasta que empiece) -->
-  <div class="controles-tactiles" id="controlesTactiles" style="display:none">
-    <button type="button" class="btn-tactil" id="tIzq" aria-label="Girar izquierda">&#9664;</button>
-    <button type="button" class="btn-tactil" id="tDer" aria-label="Girar derecha">&#9654;</button>
-    <button type="button" class="btn-tactil" id="tAce" aria-label="Acelerar">&#9650;</button>
-    <button type="button" class="btn-tactil" id="tFre" aria-label="Frenar / Reversa">&#9660;</button>
+    Giroscopio no disponible en este dispositivo.
   </div>
 
   <script type="module">
@@ -1080,7 +1012,6 @@
     const siluetaTanque = document.getElementById('siluetaTanque');
     const siluetaForklift = document.getElementById('siluetaForklift');
     const avisoSensor = document.getElementById('avisoSensor');
-    const controlesTactiles = document.getElementById('controlesTactiles');
 
     /* =========================================================
        RENDERER
@@ -1165,9 +1096,6 @@
     let modelo = null;   // group del auto cargado
     let pista = null;   // group de la pista (opcional hasta que exista pista.glb)
 
-    /* -- Entrada de controles (teclado + táctil + sensor) --- */
-    const input = { izq: false, der: false, ace: false, fre: false };
-
     /* -- Estado físico del auto ----------------------------- */
     const AUTO = {
       x: 0, y: 0, z: 0,    // posición en el mundo (m)
@@ -1196,41 +1124,6 @@
     const SPAWN_X = 50.5 * FACTOR_MUNDO;
     const SPAWN_Z = 36.6 * FACTOR_MUNDO;
     const SPAWN_ANG = Math.PI / 2; // mirando a lo largo de la recta (hacia -X)
-
-    /* =========================================================
-       TECLADO
-       ========================================================= */
-    window.addEventListener('keydown', (e) => {
-      if (!jugando) return;
-      if (e.key === 'ArrowLeft') input.izq = true;
-      if (e.key === 'ArrowRight') input.der = true;
-      if (e.key === 'ArrowUp') input.ace = true;
-      if (e.key === 'ArrowDown') input.fre = true;
-    });
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft') input.izq = false;
-      if (e.key === 'ArrowRight') input.der = false;
-      if (e.key === 'ArrowUp') input.ace = false;
-      if (e.key === 'ArrowDown') input.fre = false;
-    });
-
-    /* =========================================================
-       BOTONES TÁCTILES
-       ========================================================= */
-    function enlazarTactil(id, tecla) {
-      const btn = document.getElementById(id);
-      btn.addEventListener('touchstart', (e) => { e.preventDefault(); input[tecla] = true; }, { passive: false });
-      btn.addEventListener('touchend', (e) => { e.preventDefault(); input[tecla] = false; }, { passive: false });
-      btn.addEventListener('touchcancel', (e) => { e.preventDefault(); input[tecla] = false; }, { passive: false });
-      // mousedown/up para prueba en compu
-      btn.addEventListener('mousedown', () => input[tecla] = true);
-      btn.addEventListener('mouseup', () => input[tecla] = false);
-      btn.addEventListener('mouseleave', () => input[tecla] = false);
-    }
-    enlazarTactil('tIzq', 'izq');
-    enlazarTactil('tDer', 'der');
-    enlazarTactil('tAce', 'ace');
-    enlazarTactil('tFre', 'fre');
 
     /* =========================================================
        GIROSCOPIO
@@ -1270,7 +1163,7 @@
     chkInvertirAcel.addEventListener('change', guardarConfig);
 
     /* -- Navegación de pantallas del menú ------------------------ */
-    const DURACION_CREDITOS_SEG = 1800; // ~30 minutos (en segundos)
+    const DURACION_CREDITOS_SEG = 600; // ~10 minutos (en segundos)
     const creditosRollo = document.getElementById('creditosRollo');
     const creditosListaHumor = document.getElementById('creditosListaHumor');
     const salidaSecretaCreditos = document.getElementById('salidaSecretaCreditos');
@@ -1694,7 +1587,6 @@
       AUTO.vel = 0;
       AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
       pantallaGarage.classList.add('oculto');
-      controlesTactiles.style.display = '';
       jugando = true;
     });
 
@@ -1867,7 +1759,7 @@
       const factorGiro = enAsfalto ? 1 : GIRO_FUERA;
       const friccionActual = FRICCION + (enAsfalto ? 0 : FRICCION_FUERA);
 
-      /* -- Input del giroscopio (se combina con teclado/táctil) */
+      /* -- Input del giroscopio ------------------------------- */
       let sensorAce = false;
       let sensorFre = false;
 
@@ -1894,12 +1786,9 @@
       }
 
       /* -- Aceleración / freno -------------------------------- */
-      const usarAce = input.ace || sensorAce;
-      const usarFre = input.fre || sensorFre;
-
-      if (usarAce) {
+      if (sensorAce) {
         AUTO.vel += (ACEL * factorAcel) * dt;
-      } else if (usarFre) {
+      } else if (sensorFre) {
         if (AUTO.vel > 0.1) {
           AUTO.vel -= FRENO_INPUT * dt;
         } else {
@@ -1925,11 +1814,7 @@
         let giroFrame = 0;
         const giroMaxActual = GIRO_MAX * factorGiro;
 
-        if (input.izq) {
-          giroFrame = giroMaxActual * Math.abs(velFrac);
-        } else if (input.der) {
-          giroFrame = -giroMaxActual * Math.abs(velFrac);
-        } else if (sensorActivo && _giroSensor !== 0) {
+        if (sensorActivo && _giroSensor !== 0) {
           giroFrame = _giroSensor * giroMaxActual * Math.abs(velFrac);
         }
 
