@@ -829,6 +829,97 @@
     #avisoSensor.oculto {
       display: none;
     }
+
+    /* ---- HUD de juego (velocímetro, tiempo y botón menú) -- */
+    #hudJuego {
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+    }
+    #hudJuego.oculto {
+      display: none;
+    }
+
+    #btnSalirMenu {
+      position: absolute;
+      top: calc(14px + env(safe-area-inset-top, 0px));
+      left: calc(16px + env(safe-area-inset-left, 0px));
+      pointer-events: auto;
+      touch-action: manipulation;
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.5rem 0.9rem;
+      background: rgba(16, 16, 16, 0.85);
+      border: 1px solid var(--linea);
+      border-left: 3px solid var(--verde);
+      border-radius: 2px;
+      color: var(--texto);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+    #btnSalirMenu:active {
+      transform: scale(0.96);
+      border-color: var(--verde);
+      background: rgba(46, 204, 113, 0.25);
+    }
+    #btnSalirMenu:focus-visible {
+      outline: 2px solid var(--verde);
+      outline-offset: 2px;
+    }
+
+    .hud-caja {
+      position: absolute;
+      background: rgba(16, 16, 16, 0.85);
+      border: 1px solid var(--linea);
+      border-radius: 2px;
+      padding: 0.4rem 0.75rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hud-tiempo-wrap {
+      top: 14px;
+      right: 16px;
+      text-align: right;
+    }
+    .hud-etiqueta {
+      display: block;
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--suave);
+    }
+    #hudTiempo {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--texto);
+    }
+
+    .hud-vel-wrap {
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      padding: 0.45rem 0.9rem;
+      border-right: 3px solid var(--verde);
+    }
+    #hudVelocidad {
+      font-size: 1.85rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+    }
+    .hud-unidad {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--verde);
+    }
   </style>
 </head>
 
@@ -979,6 +1070,19 @@
     Giroscopio no disponible en este dispositivo.
   </div>
 
+  <!-- HUD de conducción -->
+  <div id="hudJuego" class="oculto" role="region" aria-label="Indicadores de conducción">
+    <button type="button" id="btnSalirMenu" aria-label="Volver al menú principal">&#8592; Menú</button>
+    <div class="hud-caja hud-tiempo-wrap">
+      <span class="hud-etiqueta">Tiempo</span>
+      <span id="hudTiempo">00:00.0</span>
+    </div>
+    <div class="hud-caja hud-vel-wrap">
+      <span id="hudVelocidad">0</span>
+      <span class="hud-unidad">KM/H</span>
+    </div>
+  </div>
+
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -1009,6 +1113,10 @@
     const siluetaTanque = document.getElementById('siluetaTanque');
     const siluetaForklift = document.getElementById('siluetaForklift');
     const avisoSensor = document.getElementById('avisoSensor');
+    const hudJuego = document.getElementById('hudJuego');
+    const btnSalirMenu = document.getElementById('btnSalirMenu');
+    const hudTiempo = document.getElementById('hudTiempo');
+    const hudVelocidad = document.getElementById('hudVelocidad');
 
     /* =========================================================
        RENDERER
@@ -1552,6 +1660,45 @@
     }
 
     /* =========================================================
+       HUD Y BOTÓN VOLVER AL MENÚ
+       ========================================================= */
+    let _tInicioSesion = 0;
+    let _tUltimaActHud = 0;
+
+    function formatearTiempo(seg) {
+      const min = Math.floor(seg / 60);
+      const s = Math.floor(seg % 60);
+      const dec = Math.floor((seg * 10) % 10);
+      const mm = min < 10 ? '0' + min : '' + min;
+      const ss = s < 10 ? '0' + s : '' + s;
+      return `${mm}:${ss}.${dec}`;
+    }
+
+    function actualizarHud() {
+      const ahora = performance.now();
+      if (ahora - _tUltimaActHud < 100) return;
+      _tUltimaActHud = ahora;
+      const kmh = Math.round(Math.abs(AUTO.vel) * 3.6);
+      hudVelocidad.textContent = kmh;
+      const transcurrido = Math.max(0, (ahora - _tInicioSesion) / 1000);
+      hudTiempo.textContent = formatearTiempo(transcurrido);
+    }
+
+    btnSalirMenu.addEventListener('click', () => {
+      jugando = false;
+      hudJuego.classList.add('oculto');
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch {}
+      mostrarPantalla('menuOverlay');
+    });
+
+    /* =========================================================
        GARAJE Y BOTÓN EMPEZAR
        ========================================================= */
     const VEHICULOS = [
@@ -1599,6 +1746,11 @@
       AUTO.vel = 0;
       AUTO.y = alturaSueloEn(AUTO.x, AUTO.z);
       pantallaGarage.classList.add('oculto');
+      _tInicioSesion = performance.now();
+      _tUltimaActHud = 0;
+      hudVelocidad.textContent = '0';
+      hudTiempo.textContent = '00:00.0';
+      hudJuego.classList.remove('oculto');
       jugando = true;
     });
 
@@ -2176,6 +2328,7 @@
         modelo.rotation.y = AUTO.angulo;
 
         actualizarCamara(dt);
+        actualizarHud();
       }
 
       renderer.render(escena, camara);
